@@ -52,7 +52,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: web-server
-          path: target/dx/web/release/web
+          path: target/dx/web/release/web/web
           if-no-files-found: error
           retention-days: 1
 
@@ -77,8 +77,7 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: .
-          wranglerConfigPath: wrangler-web.toml
-          command: publish
+          command: deploy --config wrangler-web.toml
 
   deploy-api:
     name: Deploy API Worker
@@ -104,6 +103,5 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: .
-          wranglerConfigPath: wrangler-api.toml
-          command: publish
+          command: deploy --config wrangler-api.toml
 
