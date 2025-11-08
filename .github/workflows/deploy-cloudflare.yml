@@ -17,6 +17,12 @@ jobs:
         with:
           targets: wasm32-unknown-unknown
 
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: "cloudflare-deploy-cache"
+          cache-all-crates: true
+
       - name: Install Dioxus CLI
         run: |
           cargo install dioxus-cli --locked
@@ -27,18 +33,26 @@ jobs:
           export PATH="$HOME/.cargo/bin:$PATH"
           dx build --release
 
+      - name: List build outputs
+        run: |
+          echo "Checking build outputs..."
+          ls -la target/dx/web/release/web/ 2>/dev/null || true
+          ls -la target/dx/web/release/web/public/ 2>/dev/null || true
+          find target/dx/web/release -type f -name "*.wasm" -o -name "*.html" 2>/dev/null | head -10 || true
+
       - name: Upload client artifacts
         uses: actions/upload-artifact@v4
         with:
           name: web-client
-          path: packages/web/dist
+          path: target/dx/web/release/web/public
+          if-no-files-found: warn
           retention-days: 1
 
       - name: Upload server artifacts
         uses: actions/upload-artifact@v4
         with:
           name: web-server
-          path: target/release/web
+          path: target/dx/web/release/web
           if-no-files-found: error
           retention-days: 1
 
@@ -55,7 +69,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: web-client
-          path: packages/web/dist
+          path: target/dx/web/release/web/public
 
       - name: Deploy to Cloudflare Workers (Web)
         uses: cloudflare/wrangler-action@v3
@@ -82,7 +96,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: web-server
-          path: target/release/web
+          path: target/dx/web/release/web
 
       - name: Deploy to Cloudflare Workers (API)
         uses: cloudflare/wrangler-action@v3

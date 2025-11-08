@@ -4,7 +4,7 @@ account_id = "" # Set via CLOUDFLARE_ACCOUNT_ID secret
 
 # Workers Sites configuration for serving static files
 [site]
-bucket = "packages/web/dist"
+bucket = "target/dx/web/release/web/public"
 
 # Routes for serving the web client
 # Configure routes in Cloudflare dashboard or via wrangler publish --routes
