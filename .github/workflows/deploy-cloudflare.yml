@@ -117,11 +117,23 @@ jobs:
           echo "Server binary found at correct location: target/dx/web/release/web/web"
           ls -la target/dx/web/release/web/web
 
+      - name: Verify file exists before wrangler
+        run: |
+          echo "Verifying file exists from working directory..."
+          pwd
+          ls -la target/dx/web/release/web/web || echo "File not found"
+          test -f target/dx/web/release/web/web && echo "File exists" || (echo "File does not exist" && exit 1)
+          echo "File path from repo root: $(pwd)/target/dx/web/release/web/web"
+          echo "File type:"
+          file target/dx/web/release/web/web || true
+          echo "Checking if file is executable:"
+          test -x target/dx/web/release/web/web && echo "File is executable" || echo "File is not executable"
+
       - name: Deploy to Cloudflare Workers (API)
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: .
-          command: deploy --config wrangler-api.toml
+          command: deploy --config wrangler-api.toml --main target/dx/web/release/web/web
 
