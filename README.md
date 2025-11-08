@@ -1,4 +1,6 @@
-# Development
+# applymonitor
+
+## Development
 
 Your new workspace contains a member crate for each of the web, desktop and mobile platforms, a `ui` crate for shared components and a `api` crate for shared backend logic:
 
@@ -72,4 +74,3 @@ and serve:
 ```bash
 dx serve
 ```
-
