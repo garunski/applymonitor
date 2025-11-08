@@ -1,7 +1,6 @@
 name = "applymonitor-api"
-main = "target/dx/web/release/web/web"
+main = "dist/api-worker"
 compatibility_date = "2024-01-01"
-account_id = "" # Set via CLOUDFLARE_ACCOUNT_ID secret
 
 # Routes for API endpoints
 # Configure routes in Cloudflare dashboard or via wrangler publish --routes

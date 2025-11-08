@@ -33,26 +33,18 @@ jobs:
           export PATH="$HOME/.cargo/bin:$PATH"
           dx build --release
 
-      - name: List build outputs
+      - name: Prepare dist directory
         run: |
-          echo "Checking build outputs..."
-          ls -la target/dx/web/release/web/ 2>/dev/null || true
-          ls -la target/dx/web/release/web/public/ 2>/dev/null || true
-          find target/dx/web/release -type f -name "*.wasm" -o -name "*.html" 2>/dev/null | head -10 || true
+          mkdir -p dist
+          cp -r target/dx/web/release/web/public dist/
+          cp target/dx/web/release/web/web dist/api-worker
+          chmod +x dist/api-worker
 
-      - name: Upload client artifacts
+      - name: Upload dist artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: web-client
-          path: target/dx/web/release/web/public
-          if-no-files-found: warn
-          retention-days: 1
-
-      - name: Upload server artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: web-server
-          path: target/dx/web/release/web/web
+          name: dist
+          path: dist
           if-no-files-found: error
           retention-days: 1
 
@@ -65,17 +57,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Download client artifacts
+      - name: Download dist artifacts
         uses: actions/download-artifact@v4
         with:
-          name: web-client
-          path: target/dx/web/release/web/public
+          name: dist
+          path: dist
 
       - name: Deploy to Cloudflare Workers (Web)
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4.46.0"
           workingDirectory: .
           command: deploy --config wrangler-web.toml
 
@@ -88,54 +81,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Download server artifacts
+      - name: Download dist artifacts
         uses: actions/download-artifact@v4
         with:
-          name: web-server
-          path: target/dx/web/release
-
-      - name: Fix server artifact path
-        run: |
-          echo "Checking artifact location..."
-          # Artifact downloads as single file, need to move it to correct path
-          if [ -f target/dx/web/release/web ] && [ ! -d target/dx/web/release/web ]; then
-            echo "File found at target/dx/web/release/web, moving to target/dx/web/release/web/web"
-            # Move file to temp location, create directory, then move back
-            mv target/dx/web/release/web target/dx/web/release/web.tmp
-            mkdir -p target/dx/web/release/web
-            mv target/dx/web/release/web.tmp target/dx/web/release/web/web
-          fi
-          # Verify final location
-          if [ ! -f target/dx/web/release/web/web ]; then
-            echo "ERROR: Server binary not found at target/dx/web/release/web/web"
-            find target/dx/web/release -name "web" -type f || true
-            exit 1
-          fi
-          echo "Server binary found at correct location: target/dx/web/release/web/web"
-          ls -la target/dx/web/release/web/web
-
-      - name: Verify file exists before wrangler
-        run: |
-          echo "Verifying file exists from working directory..."
-          pwd
-          ls -la target/dx/web/release/web/web || echo "File not found"
-          test -f target/dx/web/release/web/web && echo "File exists" || (echo "File does not exist" && exit 1)
-          echo "File path from repo root: $(pwd)/target/dx/web/release/web/web"
-          echo "File type:"
-          file target/dx/web/release/web/web || true
-          echo "Checking if file is executable:"
-          test -x target/dx/web/release/web/web && echo "File is executable" || echo "File is not executable"
-          echo "Verifying path from config file location:"
-          ls -la $(pwd)/target/dx/web/release/web/web || echo "Absolute path not found"
+          name: dist
+          path: dist
 
       - name: Deploy to Cloudflare Workers (API)
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4.46.0"
           workingDirectory: .
           command: deploy --config wrangler-api.toml
 
