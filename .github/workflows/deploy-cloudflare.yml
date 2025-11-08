@@ -97,16 +97,25 @@ jobs:
           name: web-server
           path: target/dx/web/release
 
-      - name: Verify server artifact location
+      - name: Fix server artifact path
         run: |
-          echo "Verifying server artifact location..."
-          ls -la target/dx/web/release/web/web || echo "File not found at expected location"
+          echo "Checking artifact location..."
+          # Artifact downloads as single file, need to move it to correct path
+          if [ -f target/dx/web/release/web ] && [ ! -d target/dx/web/release/web ]; then
+            echo "File found at target/dx/web/release/web, moving to target/dx/web/release/web/web"
+            # Move file to temp location, create directory, then move back
+            mv target/dx/web/release/web target/dx/web/release/web.tmp
+            mkdir -p target/dx/web/release/web
+            mv target/dx/web/release/web.tmp target/dx/web/release/web/web
+          fi
+          # Verify final location
           if [ ! -f target/dx/web/release/web/web ]; then
             echo "ERROR: Server binary not found at target/dx/web/release/web/web"
             find target/dx/web/release -name "web" -type f || true
             exit 1
           fi
-          echo "Server binary found at correct location"
+          echo "Server binary found at correct location: target/dx/web/release/web/web"
+          ls -la target/dx/web/release/web/web
 
       - name: Deploy to Cloudflare Workers (API)
         uses: cloudflare/wrangler-action@v3
