@@ -95,7 +95,18 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: web-server
-          path: target/dx/web/release/web
+          path: target/dx/web/release
+
+      - name: Verify server artifact location
+        run: |
+          echo "Verifying server artifact location..."
+          ls -la target/dx/web/release/web/web || echo "File not found at expected location"
+          if [ ! -f target/dx/web/release/web/web ]; then
+            echo "ERROR: Server binary not found at target/dx/web/release/web/web"
+            find target/dx/web/release -name "web" -type f || true
+            exit 1
+          fi
+          echo "Server binary found at correct location"
 
       - name: Deploy to Cloudflare Workers (API)
         uses: cloudflare/wrangler-action@v3
