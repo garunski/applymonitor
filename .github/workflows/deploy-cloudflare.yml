@@ -128,6 +128,8 @@ jobs:
           file target/dx/web/release/web/web || true
           echo "Checking if file is executable:"
           test -x target/dx/web/release/web/web && echo "File is executable" || echo "File is not executable"
+          echo "Verifying path from config file location:"
+          ls -la $(pwd)/target/dx/web/release/web/web || echo "Absolute path not found"
 
       - name: Deploy to Cloudflare Workers (API)
         uses: cloudflare/wrangler-action@v3
@@ -135,5 +137,5 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: .
-          command: deploy --config wrangler-api.toml --main target/dx/web/release/web/web
+          command: deploy --config wrangler-api.toml
 
