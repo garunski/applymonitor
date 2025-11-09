@@ -19,14 +19,14 @@ jobs:
       - name: Set Up Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Install Dioxus CLI
-        run: cargo install dioxus-cli --locked
-
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
         with:
           shared-key: "cloudflare-deploy-cache"
           cache-all-crates: true
+
+      - name: Install Dioxus CLI
+        run: cargo install dioxus-cli --locked
 
       - name: Build Web Client
         working-directory: packages/web
@@ -36,6 +36,16 @@ jobs:
         working-directory: packages/web
         run: dx build --release --platform server
 
+      - name: Create Cloudflare Pages Project (if needed)
+        uses: cloudflare/wrangler-action@v3
+        continue-on-error: true
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4.46.0"
+          workingDirectory: .
+          command: pages project create applymonitor-web
+
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         with:
@@ -43,7 +53,7 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           wranglerVersion: "4.46.0"
           workingDirectory: .
-          command: pages deploy dist/public --project-name=applymonitor-web
+          command: pages deploy dist/public --project-name=applymonitor-web --commit-dirty=true
 
       - name: Deploy API Worker to Cloudflare Workers
         uses: cloudflare/wrangler-action@v3
