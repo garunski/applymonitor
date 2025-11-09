@@ -44,7 +44,7 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           wranglerVersion: "4.46.0"
           workingDirectory: .
-          command: pages project create applymonitor-web
+          command: pages project create applymonitor-web --production-branch=main
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
