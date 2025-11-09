@@ -2,142 +2,132 @@ name: Deploy to Cloudflare
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   workflow_dispatch:
+
+env:
+  WRANGLER_VERSION: 4.46.0
+  WEB_PROJECT_NAME: applymonitor-web
+  DB_NAME: applymonitor-db
+  RUSTFLAGS: "-C target-feature=+atomics,+bulk-memory,+mutable-globals"
 
 jobs:
   deploy-web:
-    name: Deploy Web to Cloudflare Pages
+    name: 🚀 Deploy Web to Cloudflare Pages
     runs-on: ubuntu-latest
     permissions:
       contents: read
       deployments: write
+
     steps:
-      - name: Checkout Repository
+      - name: 🧾 Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set Up Rust
+      - name: ⚙️ Set up Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown
 
-      - name: Cache Rust dependencies
+      - name: 🧩 Cache Cargo dependencies
         uses: Swatinem/rust-cache@v2
         with:
-          shared-key: "cloudflare-deploy-cache"
+          shared-key: "cloudflare-rust-cache"
           cache-all-crates: true
 
-      - name: Install Dioxus CLI
+      - name: 📦 Install Dioxus CLI
         run: cargo install dioxus-cli --locked
 
-      - name: Bundle Web Client
+      - name: 🏗️ Build web client (Dioxus)
         working-directory: packages/web
         run: dx bundle --release --web
 
-      - name: Install Wrangler
-        run: npm install -g wrangler@4.46.0
+      - name: ⚡ Install Wrangler
+        run: npm install -g wrangler@${{ env.WRANGLER_VERSION }}
 
-      - name: Check and Create Cloudflare Pages Project
+      - name: 🧭 Ensure Cloudflare Pages project exists
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          if ! wrangler pages project list 2>/dev/null | grep -q "applymonitor-web"; then
-            echo "Project does not exist, creating..."
-            wrangler pages project create applymonitor-web --production-branch=main
+          if ! wrangler pages project list --json | jq -e ".[] | select(.name == \"${{ env.WEB_PROJECT_NAME }}\")" >/dev/null; then
+            echo "Creating new Cloudflare Pages project: ${{ env.WEB_PROJECT_NAME }}"
+            wrangler pages project create "${{ env.WEB_PROJECT_NAME }}" --production-branch=main
           else
-            echo "Project already exists, skipping creation"
+            echo "✅ Cloudflare Pages project '${{ env.WEB_PROJECT_NAME }}' already exists"
           fi
 
-      - name: Deploy to Cloudflare Pages
+      - name: 🚀 Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          wranglerVersion: "4.46.0"
-          workingDirectory: .
-          command: pages deploy
+          wranglerVersion: ${{ env.WRANGLER_VERSION }}
+          workingDirectory: packages/web
+          command: pages deploy dist --project-name=${{ env.WEB_PROJECT_NAME }}
 
   deploy-api:
-    name: Deploy API to Cloudflare Workers
+    name: ⚙️ Deploy API to Cloudflare Workers
     runs-on: ubuntu-latest
     permissions:
       contents: read
       deployments: write
+    needs: deploy-web  # deploy API after web succeeds
+
     steps:
-      - name: Checkout Repository
+      - name: 🧾 Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set Up Rust
+      - name: ⚙️ Set up Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown
 
-      - name: Cache Rust dependencies
+      - name: 🧩 Cache Cargo dependencies
         uses: Swatinem/rust-cache@v2
         with:
-          shared-key: "cloudflare-deploy-cache"
+          shared-key: "cloudflare-rust-cache"
           cache-all-crates: true
 
-      - name: Install worker-build
+      - name: 📦 Install worker-build
         run: cargo install worker-build --locked
 
-      - name: Install Wrangler
-        run: npm install -g wrangler@4.46.0
+      - name: ⚡ Install Wrangler
+        run: npm install -g wrangler@${{ env.WRANGLER_VERSION }}
 
-      - name: Check and Create D1 Database
+      - name: 🗃️ Ensure Cloudflare D1 database exists
+        working-directory: packages/api
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        working-directory: packages/api
         run: |
-          # Check if database exists
-          if ! wrangler d1 list 2>/dev/null | grep -q "applymonitor-db"; then
-            echo "Database does not exist, creating..."
-            DB_OUTPUT=$(wrangler d1 create applymonitor-db 2>&1)
-            echo "$DB_OUTPUT"
-            # Extract database ID from output (handles both formats)
-            DB_ID=$(echo "$DB_OUTPUT" | grep -oE 'database_id = "[^"]+"' | head -1 | sed 's/database_id = "\([^"]*\)"/\1/' || \
-                    echo "$DB_OUTPUT" | grep -oE '[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}' | head -1)
-            if [ -n "$DB_ID" ]; then
-              echo "Database created with ID: $DB_ID"
-              # Update wrangler.toml with the actual database ID
-              sed -i.bak "s/database_id = \"YOUR_DATABASE_ID_HERE\"/database_id = \"$DB_ID\"/" wrangler.toml
-              sed -i.bak "s/database_id = \"YOUR_PRODUCTION_DATABASE_ID_HERE\"/database_id = \"$DB_ID\"/" wrangler.toml
-              rm -f wrangler.toml.bak
-            else
-              echo "Warning: Could not extract database ID from output"
-            fi
+          DB_LIST=$(wrangler d1 list --json)
+          if echo "$DB_LIST" | jq -e ".[] | select(.name == \"${{ env.DB_NAME }}\")" >/dev/null; then
+            DB_ID=$(echo "$DB_LIST" | jq -r ".[] | select(.name == \"${{ env.DB_NAME }}\") | .uuid")
+            echo "✅ Found existing DB: $DB_ID"
           else
-            echo "Database already exists, getting database ID..."
-            # Get existing database ID
-            DB_ID=$(wrangler d1 list 2>/dev/null | grep "applymonitor-db" | awk '{print $2}' | head -1)
-            if [ -n "$DB_ID" ] && [ "$DB_ID" != "YOUR_DATABASE_ID_HERE" ]; then
-              echo "Found existing database ID: $DB_ID"
-              # Update wrangler.toml if it still has placeholder
-              if grep -q "YOUR_DATABASE_ID_HERE" wrangler.toml; then
-                sed -i.bak "s/database_id = \"YOUR_DATABASE_ID_HERE\"/database_id = \"$DB_ID\"/" wrangler.toml
-                sed -i.bak "s/database_id = \"YOUR_PRODUCTION_DATABASE_ID_HERE\"/database_id = \"$DB_ID\"/" wrangler.toml
-                rm -f wrangler.toml.bak
-              fi
-            fi
+            echo "🧱 Creating new D1 database: ${{ env.DB_NAME }}"
+            DB_OUTPUT=$(wrangler d1 create "${{ env.DB_NAME }}" --json)
+            DB_ID=$(echo "$DB_OUTPUT" | jq -r ".uuid")
           fi
 
-      - name: Run D1 Migrations
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          wranglerVersion: "4.46.0"
-          workingDirectory: packages/api
-          command: d1 migrations apply DB --remote
+          # Update wrangler.toml safely
+          sed -i.bak "s/database_id = \".*\"/database_id = \"$DB_ID\"/" wrangler.toml
+          rm -f wrangler.toml.bak
 
-      - name: Deploy API Worker
+      - name: 📜 Apply D1 migrations
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          wranglerVersion: "4.46.0"
+          wranglerVersion: ${{ env.WRANGLER_VERSION }}
           workingDirectory: packages/api
-          command: deploy
+          command: d1 migrations apply ${{ env.DB_NAME }} --remote
+
+      - name: 🚀 Deploy API Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: ${{ env.WRANGLER_VERSION }}
+          workingDirectory: packages/api
+          command: deploy --env production
