@@ -28,13 +28,16 @@ jobs:
       - name: Install Dioxus CLI
         run: cargo install dioxus-cli --locked
 
+      - name: Install worker-build
+        run: cargo install worker-build --locked
+
       - name: Build Web Client
         working-directory: packages/web
         run: dx build --release --platform web
 
       - name: Build API Worker
         working-directory: packages/web
-        run: dx build --release --platform server
+        run: worker-build --release
 
       - name: Create Cloudflare Pages Project (if needed)
         uses: cloudflare/wrangler-action@v3

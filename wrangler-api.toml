@@ -1,5 +1,5 @@
 name = "applymonitor-api"
-main = "dist/api-worker"
+main = "build/worker/shim.mjs"
 compatibility_date = "2024-01-01"
 workers_dev = true
 
