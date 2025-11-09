@@ -74,3 +74,42 @@ and serve:
 ```bash
 dx serve
 ```
+
+## Deployment
+
+The application is automatically deployed to Cloudflare using GitHub Actions when changes are pushed to the `main` branch.
+
+### Architecture
+
+- **Cloudflare Pages**: Hosts the static web client (WASM + HTML/CSS/JS assets)
+- **Cloudflare Workers**: Hosts the API server functions and web worker
+
+### Required GitHub Secrets
+
+The following secrets must be configured in your GitHub repository settings:
+
+- `CLOUDFLARE_API_TOKEN`: API token with Workers and Pages permissions
+  - Create at: https://dash.cloudflare.com/profile/api-tokens
+  - Required permissions: Account > Cloudflare Workers > Edit, Account > Cloudflare Pages > Edit
+- `CLOUDFLARE_ACCOUNT_ID`: Your Cloudflare account ID
+  - Find at: https://dash.cloudflare.com/ (right sidebar)
+
+### Manual Deployment
+
+To manually trigger a deployment, use the GitHub Actions workflow dispatch feature, or run locally:
+
+```bash
+# Build the application
+cd packages/web
+dx build --release --platform web
+dx build --release --platform server
+
+# Deploy to Cloudflare Pages
+wrangler pages deploy dist/public --project-name=applymonitor-web
+
+# Deploy API Worker
+wrangler deploy --config wrangler-api.toml
+
+# Deploy Web Worker
+wrangler deploy --config wrangler-web.toml
+```

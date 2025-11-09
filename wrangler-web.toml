@@ -1,6 +1,7 @@
 name = "applymonitor-web"
 main = "worker-web.js"
 compatibility_date = "2024-01-01"
+workers_dev = true
 
 # Workers Sites configuration for serving static files
 [site]
@@ -9,5 +10,4 @@ bucket = "dist/public"
 # Routes for serving the web client
 # Configure routes in Cloudflare dashboard or via wrangler publish --routes
 # Example: routes = [{ pattern = "example.com/*", zone_name = "example.com" }]
-# For workers.dev: workers_dev = true (default)
 

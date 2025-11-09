@@ -1,12 +1,12 @@
 name = "applymonitor-api"
 main = "dist/api-worker"
 compatibility_date = "2024-01-01"
+workers_dev = true
 
 # Routes for API endpoints
 # Configure routes in Cloudflare dashboard or via wrangler publish --routes
 # Example: routes = [{ pattern = "api.example.com/*", zone_name = "example.com" }]
 # Or use route pattern: routes = [{ pattern = "example.com/api/*", zone_name = "example.com" }]
-# For workers.dev: workers_dev = true (default)
 
 # Environment variables can be added here or set via Cloudflare dashboard
 # [vars]
