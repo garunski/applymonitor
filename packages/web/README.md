@@ -15,11 +15,8 @@ web/
 ```
 
 ## Dependencies
-Since you have fullstack enabled, the web crate will be built two times:
-1. Once for the server build with the `server` feature enabled
-2. Once for the client build with the `web` feature enabled
 
-You should make all web specific dependencies optional and only enabled in the `web` feature. This will ensure that the server builds don't pull in web specific dependencies which cuts down on build times significantly.
+You should make all web specific dependencies optional and only enabled in the `web` feature. This will ensure that builds don't pull in unnecessary dependencies which cuts down on build times significantly.
 
 ### Serving Your Web App
 

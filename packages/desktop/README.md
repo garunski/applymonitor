@@ -15,11 +15,8 @@ desktop/
 ```
 
 ## Dependencies
-Since you have fullstack enabled, the desktop crate will be built two times:
-1. Once for the server build with the `server` feature enabled
-2. Once for the client build with the `desktop` feature enabled
 
-You should make all desktop specific dependencies optional and only enabled in the `desktop` feature. This will ensure that the server builds don't pull in desktop specific dependencies which cuts down on build times significantly.
+You should make all desktop specific dependencies optional and only enabled in the `desktop` feature. This will ensure that builds don't pull in unnecessary dependencies which cuts down on build times significantly.
 
 ### Serving Your Desktop App
 
