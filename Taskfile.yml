@@ -51,13 +51,71 @@ tasks:
     desc: Apply database migrations locally
     dir: "{{.API_DIR}}"
     cmds:
-      - wrangler d1 migrations apply applymonitor-db --local
+      - wrangler d1 migrations apply DB --local
 
   api:migrate:prod:
     desc: Apply database migrations to production
     dir: "{{.API_DIR}}"
     cmds:
-      - wrangler d1 migrations apply applymonitor-db --remote
+      - wrangler d1 migrations apply DB --remote
+
+  setup:
+    desc: Set up Cloudflare resources (D1 database, Pages project, Worker)
+    cmds:
+      - task: setup:d1
+      - task: setup:pages
+      - task: setup:verify
+
+  setup:d1:
+    desc: Create D1 database if it doesn't exist
+    dir: "{{.API_DIR}}"
+    cmds:
+      - |
+        echo "Checking for D1 database: applymonitor-db"
+        if wrangler d1 list --json | jq -e '.[] | select(.name == "applymonitor-db")' >/dev/null 2>&1; then
+          echo "✅ D1 database 'applymonitor-db' already exists"
+          DB_ID=$(wrangler d1 list --json | jq -r '.[] | select(.name == "applymonitor-db") | .uuid')
+          echo "Database ID: $DB_ID"
+          echo ""
+          echo "Update wrangler.toml with this database ID if needed:"
+          echo "  database_id = \"$DB_ID\""
+        else
+          echo "Creating D1 database: applymonitor-db"
+          DB_OUTPUT=$(wrangler d1 create applymonitor-db --json)
+          DB_ID=$(echo "$DB_OUTPUT" | jq -r '.uuid')
+          echo "✅ Created D1 database with ID: $DB_ID"
+          echo ""
+          echo "⚠️  Update wrangler.toml with this database ID:"
+          echo "  database_id = \"$DB_ID\""
+        fi
+
+  setup:pages:
+    desc: Create Cloudflare Pages project if it doesn't exist
+    cmds:
+      - |
+        echo "Checking for Cloudflare Pages project: applymonitor-web"
+        if wrangler pages project list --json 2>/dev/null | jq -e '.[] | select(.name == "applymonitor-web")' >/dev/null; then
+          echo "✅ Cloudflare Pages project 'applymonitor-web' already exists"
+        else
+          echo "Creating Cloudflare Pages project: applymonitor-web"
+          wrangler pages project create applymonitor-web --production-branch=main
+          echo "✅ Created Cloudflare Pages project"
+        fi
+
+  setup:verify:
+    desc: Verify all Cloudflare resources are set up
+    cmds:
+      - |
+        echo ""
+        echo "🔍 Verifying Cloudflare resources..."
+        echo ""
+        echo "D1 Databases:"
+        wrangler d1 list --json | jq -r '.[] | "  ✅ \(.name) (ID: \(.uuid))"'
+        echo ""
+        echo "Pages Projects:"
+        wrangler pages project list --json 2>/dev/null | jq -r '.[] | "  ✅ \(.name)"'
+        echo ""
+        echo "✅ Setup verification complete"
 
   clean:
     desc: Clean build artifacts
