@@ -28,13 +28,9 @@ jobs:
       - name: Install Dioxus CLI
         run: cargo install dioxus-cli --locked
 
-      - name: Build Web Client
+      - name: Bundle Web Client
         working-directory: packages/web
-        run: dx build --release --platform web
-
-      - name: Build API Worker
-        working-directory: packages/web
-        run: dx build --release --platform server
+        run: dx bundle --release --web
 
       - name: Create Cloudflare Pages Project (if needed)
         uses: cloudflare/wrangler-action@v3
@@ -53,22 +49,4 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           wranglerVersion: "4.46.0"
           workingDirectory: .
-          command: pages deploy target/dx/web/release/web/public --project-name=applymonitor-web --commit-dirty=true
-
-      - name: Deploy API Worker to Cloudflare Workers
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          wranglerVersion: "4.46.0"
-          workingDirectory: .
-          command: deploy --config wrangler-api.toml
-
-      - name: Deploy Web Worker to Cloudflare Workers
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          wranglerVersion: "4.46.0"
-          workingDirectory: .
-          command: deploy --config wrangler-web.toml
+          command: pages deploy
