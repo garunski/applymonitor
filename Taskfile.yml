@@ -1,0 +1,65 @@
+version: '3'
+
+vars:
+  WEB_DIR: packages/web
+  API_DIR: packages/api
+
+tasks:
+  default:
+    desc: Run both web app and API concurrently
+    deps: [web, api]
+
+  web:
+    desc: Run the Dioxus web app on port 9000
+    dir: "{{.WEB_DIR}}"
+    cmds:
+      - dx serve --port 9000
+    env:
+      DX_ENVIRONMENT: development
+
+  api:setup:
+    desc: Install worker-build if not available
+    cmds:
+      - |
+        if ! command -v worker-build &> /dev/null; then
+          echo "Installing worker-build..."
+          cargo install worker-build --locked
+        else
+          echo "worker-build is already installed"
+        fi
+
+  api:
+    desc: Run the Cloudflare Workers API on port 8000
+    deps: [api:setup]
+    dir: "{{.API_DIR}}"
+    cmds:
+      - wrangler dev --port 8000
+
+  web:build:
+    desc: Build the web app for production
+    dir: "{{.WEB_DIR}}"
+    cmds:
+      - dx build --release
+
+  api:deploy:
+    desc: Deploy the API to Cloudflare Workers
+    dir: "{{.API_DIR}}"
+    cmds:
+      - wrangler deploy
+
+  api:migrate:
+    desc: Apply database migrations locally
+    dir: "{{.API_DIR}}"
+    cmds:
+      - wrangler d1 migrations apply applymonitor-db --local
+
+  api:migrate:prod:
+    desc: Apply database migrations to production
+    dir: "{{.API_DIR}}"
+    cmds:
+      - wrangler d1 migrations apply applymonitor-db --remote
+
+  clean:
+    desc: Clean build artifacts
+    cmds:
+      - cargo clean

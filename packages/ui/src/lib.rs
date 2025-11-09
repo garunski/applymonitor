@@ -5,3 +5,6 @@ pub use hero::Hero;
 
 mod navbar;
 pub use navbar::Navbar;
+
+mod api_test;
+pub use api_test::ApiTest;

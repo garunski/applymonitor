@@ -18,6 +18,8 @@ jobs:
 
       - name: Set Up Rust
         uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
@@ -27,6 +29,18 @@ jobs:
 
       - name: Install Dioxus CLI
         run: cargo install dioxus-cli --locked
+
+      - name: Install worker-build
+        run: cargo install worker-build --locked
+
+      - name: Run D1 Migrations
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4.46.0"
+          workingDirectory: packages/api
+          command: d1 migrations apply DB --remote
 
       - name: Bundle Web Client
         working-directory: packages/web
@@ -41,6 +55,15 @@ jobs:
           wranglerVersion: "4.46.0"
           workingDirectory: .
           command: pages project create applymonitor-web --production-branch=main
+
+      - name: Deploy API Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4.46.0"
+          workingDirectory: packages/api
+          command: deploy
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3

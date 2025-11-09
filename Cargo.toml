@@ -5,10 +5,15 @@ members = [
     "packages/web",
     "packages/desktop",
     "packages/mobile",
+    "packages/api",
 ]
 
 [workspace.dependencies]
 dioxus = { version = "0.7.1" }
-
-# workspace
 ui = { path = "packages/ui" }
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+strip = true

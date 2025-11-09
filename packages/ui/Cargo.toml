@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 dioxus = { workspace = true }
+gloo-net = "0.6"
 
 [features]
 server = []
