@@ -7,7 +7,7 @@ on:
 
 env:
   WRANGLER_VERSION: 4.46.0
-  WEB_PROJECT_NAME: applymonitor-web
+  WEB_PROJECT_NAME: applymonitor-web-production
   DB_NAME: applymonitor-db
 
 jobs:

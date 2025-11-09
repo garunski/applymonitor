@@ -1,4 +1,4 @@
-name = "applymonitor-web"
+name = "applymonitor-web-production"
 
 # The bundle location for the Dioxus project, relative to this file.
 pages_build_output_dir = "target/dx/web/release/web/public"

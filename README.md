@@ -105,7 +105,7 @@ dx build --release --platform web
 dx build --release --platform server
 
 # Deploy to Cloudflare Pages
-wrangler pages deploy dist/public --project-name=applymonitor-web
+wrangler pages deploy dist/public --project-name=applymonitor-web-production
 
 # Deploy API Worker
 wrangler deploy --config wrangler-api.toml

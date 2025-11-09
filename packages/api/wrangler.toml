@@ -6,7 +6,7 @@ main = "build/index.js"
 [[d1_databases]]
 binding = "DB"
 database_name = "applymonitor-db"
-database_id = "YOUR_DATABASE_ID_HERE"
+database_id = "9ce90777-7471-4cc4-be00-5084bfa259c3"
 
 [build]
 command = "worker-build"
@@ -14,8 +14,21 @@ cwd = "."
 
 [env.production]
 account_id = "dd9a9f25900c93ac23898bbaf306ff76"
+workers_dev = false
+preview_urls = false
 [[env.production.d1_databases]]
 binding = "DB"
 database_name = "applymonitor-db"
-database_id = "YOUR_PRODUCTION_DATABASE_ID_HERE"
+database_id = "9ce90777-7471-4cc4-be00-5084bfa259c3"
+
+[[env.production.routes]]
+pattern = "api.applymonitor.com/*"
+zone_name = "applymonitor.com"
+
+[observability]
+[observability.logs]
+enabled = true
+head_sampling_rate = 1
+invocation_logs = true
+persist = true
 

@@ -39,13 +39,79 @@ tasks:
     desc: Build the web app for production
     dir: "{{.WEB_DIR}}"
     cmds:
-      - dx build --release
+      - dx bundle --release --web
 
-  api:deploy:
-    desc: Deploy the API to Cloudflare Workers
+  api:build:
+    desc: Build the API Worker
     dir: "{{.API_DIR}}"
+    deps: [api:setup]
     cmds:
-      - wrangler deploy
+      - worker-build
+
+  dev:pages:
+    desc: Test Pages with Worker locally (builds both, then runs Pages dev)
+    deps: [web:build, api:build]
+    cmds:
+      - |
+        echo "🚀 Testing Pages with Worker locally"
+        echo ""
+        echo "📦 Both web and API are built"
+        echo ""
+        echo "🔧 Starting Pages dev server with Worker..."
+        echo "Note: This will serve static assets from target/dx/web/release/web/public"
+        echo "      and run the API Worker to handle /api/* routes"
+        echo ""
+        wrangler pages dev target/dx/web/release/web/public \
+          --compatibility-date=2024-01-01 \
+          --local \
+          --port=8788 \
+          --worker-path=packages/api/build/index.js \
+          --binding=DB:applymonitor-db
+
+  deploy:test:
+    desc: Test deploy both API Worker and web to the same Pages project
+    deps: [web:build, api:build]
+    cmds:
+      - task: deploy:test:build-api
+      - task: deploy:test:deploy-pages
+      - task: deploy:test:deploy-api
+
+  deploy:test:build-api:
+    desc: Build API Worker
+    dir: "{{.API_DIR}}"
+    internal: true
+    cmds:
+      - worker-build
+
+  deploy:test:deploy-pages:
+    desc: Deploy Pages
+    internal: true
+    cmds:
+      - |
+        echo "🚀 Testing deployment of API Worker + Web to same Pages project"
+        echo ""
+        echo "📦 Web assets already built in target/dx/web/release/web/public"
+        echo ""
+        echo "🔧 Step 1: Deploying static assets to Cloudflare Pages..."
+        wrangler pages deploy target/dx/web/release/web/public \
+          --project-name=applymonitor-web-production
+        echo ""
+
+  deploy:test:deploy-api:
+    desc: Deploy API Worker
+    dir: "{{.API_DIR}}"
+    internal: true
+    cmds:
+      - |
+        echo ""
+        echo "🔧 Step 2: Deploying API Worker..."
+        echo "Note: After deploying, attach the Worker to the Pages project via:"
+        echo "  - Cloudflare Dashboard: Pages > applymonitor-web-production > Settings > Functions"
+        echo "  - Or use the Pages API to attach the Worker programmatically"
+        echo ""
+        wrangler deploy --env production
+        echo ""
+        echo "✅ Deployment complete!"
 
   api:migrate:
     desc: Apply database migrations locally
@@ -60,10 +126,11 @@ tasks:
       - wrangler d1 migrations apply DB --remote
 
   setup:
-    desc: Set up Cloudflare resources (D1 database, Pages project, Worker)
+    desc: Set up Cloudflare resources (D1 database, Pages project, Worker, Custom domain)
     cmds:
       - task: setup:d1
       - task: setup:pages
+      - task: setup:domain
       - task: setup:verify
 
   setup:d1:
@@ -71,36 +138,43 @@ tasks:
     dir: "{{.API_DIR}}"
     cmds:
       - |
-        echo "Checking for D1 database: applymonitor-db"
-        if wrangler d1 list --json | jq -e '.[] | select(.name == "applymonitor-db")' >/dev/null 2>&1; then
-          echo "✅ D1 database 'applymonitor-db' already exists"
-          DB_ID=$(wrangler d1 list --json | jq -r '.[] | select(.name == "applymonitor-db") | .uuid')
-          echo "Database ID: $DB_ID"
-          echo ""
-          echo "Update wrangler.toml with this database ID if needed:"
-          echo "  database_id = \"$DB_ID\""
-        else
-          echo "Creating D1 database: applymonitor-db"
-          DB_OUTPUT=$(wrangler d1 create applymonitor-db --json)
-          DB_ID=$(echo "$DB_OUTPUT" | jq -r '.uuid')
-          echo "✅ Created D1 database with ID: $DB_ID"
-          echo ""
-          echo "⚠️  Update wrangler.toml with this database ID:"
-          echo "  database_id = \"$DB_ID\""
-        fi
+        echo "Creating D1 database: applymonitor-db"
+        wrangler d1 create applymonitor-db || echo "Database may already exist"
+        echo "✅ Done! Update wrangler.toml with the database_id from the output above"
 
   setup:pages:
     desc: Create Cloudflare Pages project if it doesn't exist
     cmds:
       - |
-        echo "Checking for Cloudflare Pages project: applymonitor-web"
-        if wrangler pages project list --json 2>/dev/null | jq -e '.[] | select(.name == "applymonitor-web")' >/dev/null; then
-          echo "✅ Cloudflare Pages project 'applymonitor-web' already exists"
+        echo "Checking for Cloudflare Pages project: applymonitor-web-production"
+        if wrangler pages project list --json 2>/dev/null | jq -e '.[] | select(.name == "applymonitor-web-production")' >/dev/null; then
+          echo "✅ Cloudflare Pages project 'applymonitor-web-production' already exists"
         else
-          echo "Creating Cloudflare Pages project: applymonitor-web"
-          wrangler pages project create applymonitor-web --production-branch=main
+          echo "Creating Cloudflare Pages project: applymonitor-web-production"
+          wrangler pages project create applymonitor-web-production --production-branch=main
           echo "✅ Created Cloudflare Pages project"
         fi
+        echo ""
+        echo "📝 To add custom domain 'applymonitor.com' to Pages:"
+        echo "   Go to Cloudflare Dashboard > Pages > applymonitor-web-production > Custom domains"
+        echo "   Or run: wrangler pages domain add applymonitor.com --project-name=applymonitor-web-production"
+
+  setup:domain:
+    desc: Add custom domain applymonitor.com to Pages and Worker
+    cmds:
+      - |
+        echo "🌐 Setting up custom domain: applymonitor.com"
+        echo ""
+        echo "📄 Adding domain to Pages project..."
+        echo "Note: Custom domains for Pages must be added via Cloudflare Dashboard:"
+        echo "      Pages > applymonitor-web-production > Custom domains > Set up a custom domain"
+        echo ""
+        echo "📄 Adding domain to Worker..."
+        echo "Note: Worker routes are configured in wrangler.toml"
+        echo "      Custom domain should be added via Cloudflare Dashboard:"
+        echo "      Workers & Pages > applymonitor-api-production > Triggers > Custom Domains"
+        echo ""
+        echo "✅ Domain setup instructions provided"
 
   setup:verify:
     desc: Verify all Cloudflare resources are set up
