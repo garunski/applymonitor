@@ -1,7 +1,7 @@
 name = "applymonitor-api"
 compatibility_date = "2024-01-01"
 account_id = "dd9a9f25900c93ac23898bbaf306ff76"
-main = "build/index.js"
+main = "main/build/index.js"
 
 [[d1_databases]]
 binding = "DB"
@@ -10,7 +10,7 @@ database_id = "9ce90777-7471-4cc4-be00-5084bfa259c3"
 
 [build]
 command = "worker-build"
-cwd = "."
+cwd = "main"
 
 [env.production]
 account_id = "dd9a9f25900c93ac23898bbaf306ff76"

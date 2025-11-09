@@ -9,13 +9,13 @@ tasks:
 
   api:
     desc: Build the API Worker
-    dir: "{{.API_DIR}}"
+    dir: "{{.API_DIR}}/main"
     cmds:
       - worker-build
 
   api:prod:
     desc: Build the API Worker for production (same as GitHub action)
-    dir: "{{.API_DIR}}"
+    dir: "{{.API_DIR}}/main"
     deps: [run:api:setup]
     cmds:
       - |

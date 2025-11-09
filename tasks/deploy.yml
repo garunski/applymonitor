@@ -3,7 +3,6 @@ version: '3'
 tasks:
   prod:
     desc: Test deploy both API Worker and web to the same Pages project
-    deps: [build:web, build:api]
     cmds:
       - task: prod:build-api
       - task: prod:deploy-pages
@@ -11,7 +10,7 @@ tasks:
 
   prod:build-api:
     desc: Build API Worker
-    dir: "{{.API_DIR}}"
+    dir: "{{.API_DIR}}/main"
     internal: true
     cmds:
       - worker-build
