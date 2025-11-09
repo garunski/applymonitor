@@ -1,0 +1,31 @@
+version: '3'
+
+tasks:
+  web:build:
+    desc: Build the web app for production
+    dir: "{{.WEB_DIR}}"
+    cmds:
+      - dx bundle --release --web
+
+  api:build:
+    desc: Build the API Worker
+    dir: "{{.API_DIR}}"
+    deps: [run:api:setup]
+    cmds:
+      - worker-build
+
+  api:build:prod:
+    desc: Build the API Worker for production (same as GitHub action)
+    dir: "{{.API_DIR}}"
+    deps: [run:api:setup]
+    cmds:
+      - |
+        echo "Ensuring wasm32-unknown-unknown target is installed..."
+        rustup target add wasm32-unknown-unknown || true
+      - worker-build
+
+  clean:
+    desc: Clean build artifacts
+    cmds:
+      - cargo clean
+

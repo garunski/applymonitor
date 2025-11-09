@@ -1,0 +1,29 @@
+version: '3'
+
+tasks:
+  web:
+    desc: Run the Dioxus web app on port 9000
+    dir: "{{.WEB_DIR}}"
+    cmds:
+      - dx serve --port 9000
+    env:
+      DX_ENVIRONMENT: development
+
+  api:setup:
+    desc: Install worker-build if not available
+    cmds:
+      - |
+        if ! command -v worker-build &> /dev/null; then
+          echo "Installing worker-build..."
+          cargo install worker-build --locked
+        else
+          echo "worker-build is already installed"
+        fi
+
+  api:
+    desc: Run the Cloudflare Workers API on port 8000
+    deps: [api:setup]
+    dir: "{{.API_DIR}}"
+    cmds:
+      - wrangler dev --port 8000
+

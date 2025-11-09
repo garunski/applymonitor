@@ -1,0 +1,23 @@
+version: '3'
+
+tasks:
+  dev:pages:
+    desc: Test Pages with Worker locally (builds both, then runs Pages dev)
+    deps: [build:web:build, build:api:build]
+    cmds:
+      - |
+        echo "🚀 Testing Pages with Worker locally"
+        echo ""
+        echo "📦 Both web and API are built"
+        echo ""
+        echo "🔧 Starting Pages dev server with Worker..."
+        echo "Note: This will serve static assets from target/dx/web/release/web/public"
+        echo "      and run the API Worker to handle /api/* routes"
+        echo ""
+        wrangler pages dev target/dx/web/release/web/public \
+          --compatibility-date=2024-01-01 \
+          --local \
+          --port=8788 \
+          --worker-path=packages/api/build/index.js \
+          --binding=DB:applymonitor-db
+

@@ -1,0 +1,25 @@
+version: '3'
+
+tasks:
+  format:
+    desc: Format all Rust code in the workspace
+    cmds:
+      - cargo fmt --all
+
+  quality:
+    desc: Run all cargo quality checks (format, clippy, test, check) treating warnings as errors
+    deps: [format]
+    cmds:
+      - |
+        echo "🔍 Checking code formatting..."
+        cargo fmt --all -- --check
+      - |
+        echo "🔍 Running clippy (treating warnings as errors)..."
+        cargo clippy --workspace -- -D warnings
+      - |
+        echo "🔍 Running tests..."
+        cargo test --workspace
+      - |
+        echo "🔍 Checking compilation..."
+        cargo check --workspace
+      - echo "✅ All quality checks passed!"

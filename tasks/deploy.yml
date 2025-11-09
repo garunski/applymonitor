@@ -1,0 +1,60 @@
+version: '3'
+
+tasks:
+  deploy:test:
+    desc: Test deploy both API Worker and web to the same Pages project
+    deps: [build:web:build, build:api:build]
+    cmds:
+      - task: deploy:test:build-api
+      - task: deploy:test:deploy-pages
+      - task: deploy:test:deploy-api
+
+  deploy:test:build-api:
+    desc: Build API Worker
+    dir: "{{.API_DIR}}"
+    internal: true
+    cmds:
+      - worker-build
+
+  deploy:test:deploy-pages:
+    desc: Deploy Pages
+    internal: true
+    cmds:
+      - |
+        echo "🚀 Testing deployment of API Worker + Web to same Pages project"
+        echo ""
+        echo "📦 Web assets already built in target/dx/web/release/web/public"
+        echo ""
+        echo "🔧 Step 1: Deploying static assets to Cloudflare Pages..."
+        wrangler pages deploy target/dx/web/release/web/public \
+          --project-name=applymonitor-web-production
+        echo ""
+
+  deploy:test:deploy-api:
+    desc: Deploy API Worker
+    dir: "{{.API_DIR}}"
+    internal: true
+    cmds:
+      - |
+        echo ""
+        echo "🔧 Step 2: Deploying API Worker..."
+        echo "Note: After deploying, attach the Worker to the Pages project via:"
+        echo "  - Cloudflare Dashboard: Pages > applymonitor-web-production > Settings > Functions"
+        echo "  - Or use the Pages API to attach the Worker programmatically"
+        echo ""
+        wrangler deploy --env production
+        echo ""
+        echo "✅ Deployment complete!"
+
+  api:migrate:
+    desc: Apply database migrations locally
+    dir: "{{.API_DIR}}"
+    cmds:
+      - wrangler d1 migrations apply DB --local
+
+  api:migrate:prod:
+    desc: Apply database migrations to production
+    dir: "{{.API_DIR}}"
+    cmds:
+      - wrangler d1 migrations apply DB --remote
+
