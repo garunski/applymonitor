@@ -3,7 +3,7 @@ version: '3'
 tasks:
   dev:pages:
     desc: Test Pages with Worker locally (builds both, then runs Pages dev)
-    deps: [build:web:build, build:api:build]
+    deps: [build:web, build:api]
     cmds:
       - |
         echo "🚀 Testing Pages with Worker locally"

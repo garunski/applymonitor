@@ -1,22 +1,22 @@
 version: '3'
 
 tasks:
-  deploy:test:
+  prod:
     desc: Test deploy both API Worker and web to the same Pages project
-    deps: [build:web:build, build:api:build]
+    deps: [build:web, build:api]
     cmds:
-      - task: deploy:test:build-api
-      - task: deploy:test:deploy-pages
-      - task: deploy:test:deploy-api
+      - task: prod:build-api
+      - task: prod:deploy-pages
+      - task: prod:deploy-api
 
-  deploy:test:build-api:
+  prod:build-api:
     desc: Build API Worker
     dir: "{{.API_DIR}}"
     internal: true
     cmds:
       - worker-build
 
-  deploy:test:deploy-pages:
+  prod:deploy-pages:
     desc: Deploy Pages
     internal: true
     cmds:
@@ -30,7 +30,7 @@ tasks:
           --project-name=applymonitor-web-production
         echo ""
 
-  deploy:test:deploy-api:
+  prod:deploy-api:
     desc: Deploy API Worker
     dir: "{{.API_DIR}}"
     internal: true
@@ -52,9 +52,8 @@ tasks:
     cmds:
       - wrangler d1 migrations apply DB --local
 
-  api:migrate:prod:
+  api:migrate-prod:
     desc: Apply database migrations to production
     dir: "{{.API_DIR}}"
     cmds:
       - wrangler d1 migrations apply DB --remote
-

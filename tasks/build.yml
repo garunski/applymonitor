@@ -1,20 +1,19 @@
 version: '3'
 
 tasks:
-  web:build:
+  web:
     desc: Build the web app for production
     dir: "{{.WEB_DIR}}"
     cmds:
       - dx bundle --release --web
 
-  api:build:
+  api:
     desc: Build the API Worker
     dir: "{{.API_DIR}}"
-    deps: [run:api:setup]
     cmds:
       - worker-build
 
-  api:build:prod:
+  api:prod:
     desc: Build the API Worker for production (same as GitHub action)
     dir: "{{.API_DIR}}"
     deps: [run:api:setup]

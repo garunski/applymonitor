@@ -34,7 +34,7 @@ async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
                 .with_cors(&get_cors())
         })
         // Catch-all route to handle unmatched requests (helps with debugging)
-        .get("*", |req, _| {
+        .get("*path", |req, _| {
             let path = match req.url() {
                 Ok(url) => url.path().to_string(),
                 Err(_) => "unknown".to_string(),
@@ -46,7 +46,7 @@ async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
             Response::ok(format!("Worker invoked! Path: {}, Host: {}", path, host))?
                 .with_cors(&get_cors())
         })
-        .options("*", |_, _| {
+        .options("*path", |_, _| {
             Response::ok("")?
                 .with_cors(&get_cors())
         })
