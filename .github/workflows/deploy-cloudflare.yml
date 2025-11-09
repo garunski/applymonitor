@@ -7,7 +7,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  deploy:
+  deploy-web:
+    name: Deploy Web to Cloudflare Pages
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -30,6 +31,55 @@ jobs:
       - name: Install Dioxus CLI
         run: cargo install dioxus-cli --locked
 
+      - name: Bundle Web Client
+        working-directory: packages/web
+        run: dx bundle --release --web
+
+      - name: Install Wrangler
+        run: npm install -g wrangler@4.46.0
+
+      - name: Check and Create Cloudflare Pages Project
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if ! wrangler pages project list 2>/dev/null | grep -q "applymonitor-web"; then
+            echo "Project does not exist, creating..."
+            wrangler pages project create applymonitor-web --production-branch=main
+          else
+            echo "Project already exists, skipping creation"
+          fi
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4.46.0"
+          workingDirectory: .
+          command: pages deploy
+
+  deploy-api:
+    name: Deploy API to Cloudflare Workers
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set Up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: "cloudflare-deploy-cache"
+          cache-all-crates: true
+
       - name: Install worker-build
         run: cargo install worker-build --locked
 
@@ -42,20 +92,6 @@ jobs:
           workingDirectory: packages/api
           command: d1 migrations apply DB --remote
 
-      - name: Bundle Web Client
-        working-directory: packages/web
-        run: dx bundle --release --web
-
-      - name: Create Cloudflare Pages Project (if needed)
-        uses: cloudflare/wrangler-action@v3
-        continue-on-error: true
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          wranglerVersion: "4.46.0"
-          workingDirectory: .
-          command: pages project create applymonitor-web --production-branch=main
-
       - name: Deploy API Worker
         uses: cloudflare/wrangler-action@v3
         with:
@@ -64,12 +100,3 @@ jobs:
           wranglerVersion: "4.46.0"
           workingDirectory: packages/api
           command: deploy
-
-      - name: Deploy to Cloudflare Pages
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          wranglerVersion: "4.46.0"
-          workingDirectory: .
-          command: pages deploy
