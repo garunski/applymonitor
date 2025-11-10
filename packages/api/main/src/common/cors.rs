@@ -18,5 +18,6 @@ pub fn get_cors(env: &Env) -> Cors {
             Method::Options,
         ])
         .with_allowed_headers(["Content-Type", "Authorization", "Cookie"])
+        .with_credentials(true)
         .with_max_age(86400)
 }

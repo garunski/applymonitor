@@ -1,12 +1,12 @@
 //! Auth API service
 
-use crate::services::{api_config::get_api_base_url, error::ServiceError};
+use crate::services::{api_config::get_api_base_url, error::ServiceError, http_client};
 use serde::{Deserialize, Serialize};
 
 /// User struct matching API response
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct User {
-    pub id: i64,
+    pub id: String, // UUID
     pub email: Option<String>,
     pub name: Option<String>,
     pub picture: Option<String>,
@@ -23,25 +23,16 @@ impl AuthService {
     pub async fn fetch_current_user() -> Result<User, ServiceError> {
         let url = format!("{}/api/me", get_api_base_url());
 
-        match gloo_net::http::Request::get(&url).send().await {
-            Ok(response) => {
-                if response.status() == 200 {
-                    match response.json::<User>().await {
-                        Ok(user) => Ok(user),
-                        Err(e) => Err(ServiceError::Parse(format!("Failed to parse user: {}", e))),
-                    }
-                } else if response.status() == 401 {
-                    Err(ServiceError::Unauthorized)
-                } else {
-                    let status = response.status();
-                    let text = response.text().await.unwrap_or_default();
-                    Err(ServiceError::Server(status, text))
-                }
-            }
-            Err(e) => Err(ServiceError::Network(format!(
-                "Failed to fetch user: {}",
-                e
-            ))),
+        let response = http_client::get(&url).await?;
+        let status = response.status();
+
+        if status == 200 {
+            http_client::json::<User>(response).await
+        } else if status == 401 {
+            Err(ServiceError::Unauthorized)
+        } else {
+            let text = http_client::text(response).await.unwrap_or_default();
+            Err(ServiceError::Server(status, text))
         }
     }
 
@@ -79,30 +70,22 @@ impl AuthService {
             name: name.to_string(),
         };
 
-        match gloo_net::http::Request::post(&url)
-            .json(&request_body)
-            .map_err(|e| ServiceError::Parse(format!("Failed to serialize request: {}", e)))?
-            .send()
-            .await
-        {
-            Ok(response) => {
-                if response.status() == 200 {
-                    match response.json::<User>().await {
-                        Ok(user) => Ok(user),
-                        Err(e) => Err(ServiceError::Parse(format!("Failed to parse user: {}", e))),
-                    }
-                } else if response.status() == 409 {
-                    Err(ServiceError::Server(
-                        409,
-                        "Email already registered".to_string(),
-                    ))
-                } else {
-                    let status = response.status();
-                    let text = response.text().await.unwrap_or_default();
-                    Err(ServiceError::Server(status, text))
-                }
-            }
-            Err(e) => Err(ServiceError::Network(format!("Failed to register: {}", e))),
+        let body = serde_json::to_string(&request_body)
+            .map_err(|e| ServiceError::Parse(format!("Failed to serialize request: {}", e)))?;
+
+        let response = http_client::post(&url, Some(&body)).await?;
+        let status = response.status();
+
+        if status == 200 {
+            http_client::json::<User>(response).await
+        } else if status == 409 {
+            Err(ServiceError::Server(
+                409,
+                "Email already registered".to_string(),
+            ))
+        } else {
+            let text = http_client::text(response).await.unwrap_or_default();
+            Err(ServiceError::Server(status, text))
         }
     }
 
@@ -121,27 +104,19 @@ impl AuthService {
             password: password.to_string(),
         };
 
-        match gloo_net::http::Request::post(&url)
-            .json(&request_body)
-            .map_err(|e| ServiceError::Parse(format!("Failed to serialize request: {}", e)))?
-            .send()
-            .await
-        {
-            Ok(response) => {
-                if response.status() == 200 {
-                    match response.json::<User>().await {
-                        Ok(user) => Ok(user),
-                        Err(e) => Err(ServiceError::Parse(format!("Failed to parse user: {}", e))),
-                    }
-                } else if response.status() == 401 {
-                    Err(ServiceError::Unauthorized)
-                } else {
-                    let status = response.status();
-                    let text = response.text().await.unwrap_or_default();
-                    Err(ServiceError::Server(status, text))
-                }
-            }
-            Err(e) => Err(ServiceError::Network(format!("Failed to login: {}", e))),
+        let body = serde_json::to_string(&request_body)
+            .map_err(|e| ServiceError::Parse(format!("Failed to serialize request: {}", e)))?;
+
+        let response = http_client::post(&url, Some(&body)).await?;
+        let status = response.status();
+
+        if status == 200 {
+            http_client::json::<User>(response).await
+        } else if status == 401 {
+            Err(ServiceError::Unauthorized)
+        } else {
+            let text = http_client::text(response).await.unwrap_or_default();
+            Err(ServiceError::Server(status, text))
         }
     }
 
@@ -158,25 +133,17 @@ impl AuthService {
             email: email.to_string(),
         };
 
-        match gloo_net::http::Request::post(&url)
-            .json(&request_body)
-            .map_err(|e| ServiceError::Parse(format!("Failed to serialize request: {}", e)))?
-            .send()
-            .await
-        {
-            Ok(response) => {
-                if response.status() == 200 {
-                    Ok(())
-                } else {
-                    let status = response.status();
-                    let text = response.text().await.unwrap_or_default();
-                    Err(ServiceError::Server(status, text))
-                }
-            }
-            Err(e) => Err(ServiceError::Network(format!(
-                "Failed to request password reset: {}",
-                e
-            ))),
+        let body = serde_json::to_string(&request_body)
+            .map_err(|e| ServiceError::Parse(format!("Failed to serialize request: {}", e)))?;
+
+        let response = http_client::post(&url, Some(&body)).await?;
+        let status = response.status();
+
+        if status == 200 {
+            Ok(())
+        } else {
+            let text = http_client::text(response).await.unwrap_or_default();
+            Err(ServiceError::Server(status, text))
         }
     }
 
@@ -198,25 +165,17 @@ impl AuthService {
             new_password: new_password.to_string(),
         };
 
-        match gloo_net::http::Request::post(&url)
-            .json(&request_body)
-            .map_err(|e| ServiceError::Parse(format!("Failed to serialize request: {}", e)))?
-            .send()
-            .await
-        {
-            Ok(response) => {
-                if response.status() == 200 {
-                    Ok(())
-                } else {
-                    let status = response.status();
-                    let text = response.text().await.unwrap_or_default();
-                    Err(ServiceError::Server(status, text))
-                }
-            }
-            Err(e) => Err(ServiceError::Network(format!(
-                "Failed to confirm password reset: {}",
-                e
-            ))),
+        let body = serde_json::to_string(&request_body)
+            .map_err(|e| ServiceError::Parse(format!("Failed to serialize request: {}", e)))?;
+
+        let response = http_client::post(&url, Some(&body)).await?;
+        let status = response.status();
+
+        if status == 200 {
+            Ok(())
+        } else {
+            let text = http_client::text(response).await.unwrap_or_default();
+            Err(ServiceError::Server(status, text))
         }
     }
 
@@ -231,20 +190,14 @@ impl AuthService {
     pub async fn unlink_provider(provider: &str) -> Result<(), ServiceError> {
         let url = format!("{}/auth/unlink?provider={}", get_api_base_url(), provider);
 
-        match gloo_net::http::Request::post(&url).send().await {
-            Ok(response) => {
-                if response.status() == 200 {
-                    Ok(())
-                } else {
-                    let status = response.status();
-                    let text = response.text().await.unwrap_or_default();
-                    Err(ServiceError::Server(status, text))
-                }
-            }
-            Err(e) => Err(ServiceError::Network(format!(
-                "Failed to unlink provider: {}",
-                e
-            ))),
+        let response = http_client::post(&url, None).await?;
+        let status = response.status();
+
+        if status == 200 {
+            Ok(())
+        } else {
+            let text = http_client::text(response).await.unwrap_or_default();
+            Err(ServiceError::Server(status, text))
         }
     }
 }

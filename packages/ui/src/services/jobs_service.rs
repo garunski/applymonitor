@@ -1,6 +1,6 @@
 //! Jobs API service
 
-use crate::services::{api_config::get_api_base_url, error::ServiceError};
+use crate::services::{api_config::get_api_base_url, error::ServiceError, http_client};
 use serde::{Deserialize, Serialize};
 
 /// Job struct matching API response
@@ -41,27 +41,18 @@ impl JobsService {
     pub async fn fetch_jobs() -> Result<Vec<Job>, ServiceError> {
         let url = format!("{}/jobs", get_api_base_url());
 
-        match gloo_net::http::Request::get(&url).send().await {
-            Ok(response) => {
-                if response.status() == 200 {
-                    match response.json::<Vec<Job>>().await {
-                        Ok(jobs) => Ok(jobs),
-                        Err(e) => Err(ServiceError::Parse(format!("Failed to parse jobs: {}", e))),
-                    }
-                } else if response.status() == 404 {
-                    Err(ServiceError::NotFound)
-                } else if response.status() == 401 {
-                    Err(ServiceError::Unauthorized)
-                } else {
-                    let status = response.status();
-                    let text = response.text().await.unwrap_or_default();
-                    Err(ServiceError::Server(status, text))
-                }
-            }
-            Err(e) => Err(ServiceError::Network(format!(
-                "Failed to fetch jobs: {}",
-                e
-            ))),
+        let response = http_client::get(&url).await?;
+        let status = response.status();
+
+        if status == 200 {
+            http_client::json::<Vec<Job>>(response).await
+        } else if status == 404 {
+            Err(ServiceError::NotFound)
+        } else if status == 401 {
+            Err(ServiceError::Unauthorized)
+        } else {
+            let text = http_client::text(response).await.unwrap_or_default();
+            Err(ServiceError::Server(status, text))
         }
     }
 
@@ -69,24 +60,18 @@ impl JobsService {
     pub async fn fetch_job(id: i64) -> Result<Job, ServiceError> {
         let url = format!("{}/jobs/{}", get_api_base_url(), id);
 
-        match gloo_net::http::Request::get(&url).send().await {
-            Ok(response) => {
-                if response.status() == 200 {
-                    match response.json::<Job>().await {
-                        Ok(job) => Ok(job),
-                        Err(e) => Err(ServiceError::Parse(format!("Failed to parse job: {}", e))),
-                    }
-                } else if response.status() == 404 {
-                    Err(ServiceError::NotFound)
-                } else if response.status() == 401 {
-                    Err(ServiceError::Unauthorized)
-                } else {
-                    let status = response.status();
-                    let text = response.text().await.unwrap_or_default();
-                    Err(ServiceError::Server(status, text))
-                }
-            }
-            Err(e) => Err(ServiceError::Network(format!("Failed to fetch job: {}", e))),
+        let response = http_client::get(&url).await?;
+        let status = response.status();
+
+        if status == 200 {
+            http_client::json::<Job>(response).await
+        } else if status == 404 {
+            Err(ServiceError::NotFound)
+        } else if status == 401 {
+            Err(ServiceError::Unauthorized)
+        } else {
+            let text = http_client::text(response).await.unwrap_or_default();
+            Err(ServiceError::Server(status, text))
         }
     }
 
@@ -94,33 +79,19 @@ impl JobsService {
     pub async fn create_job(job: CreateJobRequest) -> Result<Job, ServiceError> {
         let url = format!("{}/jobs", get_api_base_url());
 
-        match gloo_net::http::Request::post(&url)
-            .json(&job)
-            .map_err(|e| ServiceError::Parse(format!("Failed to serialize job: {}", e)))?
-            .send()
-            .await
-        {
-            Ok(response) => {
-                if response.status() == 201 || response.status() == 200 {
-                    match response.json::<Job>().await {
-                        Ok(job) => Ok(job),
-                        Err(e) => Err(ServiceError::Parse(format!(
-                            "Failed to parse created job: {}",
-                            e
-                        ))),
-                    }
-                } else if response.status() == 401 {
-                    Err(ServiceError::Unauthorized)
-                } else {
-                    let status = response.status();
-                    let text = response.text().await.unwrap_or_default();
-                    Err(ServiceError::Server(status, text))
-                }
-            }
-            Err(e) => Err(ServiceError::Network(format!(
-                "Failed to create job: {}",
-                e
-            ))),
+        let body = serde_json::to_string(&job)
+            .map_err(|e| ServiceError::Parse(format!("Failed to serialize job: {}", e)))?;
+
+        let response = http_client::post(&url, Some(&body)).await?;
+        let status = response.status();
+
+        if status == 201 || status == 200 {
+            http_client::json::<Job>(response).await
+        } else if status == 401 {
+            Err(ServiceError::Unauthorized)
+        } else {
+            let text = http_client::text(response).await.unwrap_or_default();
+            Err(ServiceError::Server(status, text))
         }
     }
 
@@ -128,35 +99,21 @@ impl JobsService {
     pub async fn update_job(id: i64, job: UpdateJobRequest) -> Result<Job, ServiceError> {
         let url = format!("{}/jobs/{}", get_api_base_url(), id);
 
-        match gloo_net::http::Request::put(&url)
-            .json(&job)
-            .map_err(|e| ServiceError::Parse(format!("Failed to serialize job: {}", e)))?
-            .send()
-            .await
-        {
-            Ok(response) => {
-                if response.status() == 200 {
-                    match response.json::<Job>().await {
-                        Ok(job) => Ok(job),
-                        Err(e) => Err(ServiceError::Parse(format!(
-                            "Failed to parse updated job: {}",
-                            e
-                        ))),
-                    }
-                } else if response.status() == 404 {
-                    Err(ServiceError::NotFound)
-                } else if response.status() == 401 {
-                    Err(ServiceError::Unauthorized)
-                } else {
-                    let status = response.status();
-                    let text = response.text().await.unwrap_or_default();
-                    Err(ServiceError::Server(status, text))
-                }
-            }
-            Err(e) => Err(ServiceError::Network(format!(
-                "Failed to update job: {}",
-                e
-            ))),
+        let body = serde_json::to_string(&job)
+            .map_err(|e| ServiceError::Parse(format!("Failed to serialize job: {}", e)))?;
+
+        let response = http_client::put(&url, Some(&body)).await?;
+        let status = response.status();
+
+        if status == 200 {
+            http_client::json::<Job>(response).await
+        } else if status == 404 {
+            Err(ServiceError::NotFound)
+        } else if status == 401 {
+            Err(ServiceError::Unauthorized)
+        } else {
+            let text = http_client::text(response).await.unwrap_or_default();
+            Err(ServiceError::Server(status, text))
         }
     }
 
@@ -164,24 +121,18 @@ impl JobsService {
     pub async fn delete_job(id: i64) -> Result<(), ServiceError> {
         let url = format!("{}/jobs/{}", get_api_base_url(), id);
 
-        match gloo_net::http::Request::delete(&url).send().await {
-            Ok(response) => {
-                if response.status() == 200 || response.status() == 204 {
-                    Ok(())
-                } else if response.status() == 404 {
-                    Err(ServiceError::NotFound)
-                } else if response.status() == 401 {
-                    Err(ServiceError::Unauthorized)
-                } else {
-                    let status = response.status();
-                    let text = response.text().await.unwrap_or_default();
-                    Err(ServiceError::Server(status, text))
-                }
-            }
-            Err(e) => Err(ServiceError::Network(format!(
-                "Failed to delete job: {}",
-                e
-            ))),
+        let response = http_client::delete(&url).await?;
+        let status = response.status();
+
+        if status == 200 || status == 204 {
+            Ok(())
+        } else if status == 404 {
+            Err(ServiceError::NotFound)
+        } else if status == 401 {
+            Err(ServiceError::Unauthorized)
+        } else {
+            let text = http_client::text(response).await.unwrap_or_default();
+            Err(ServiceError::Server(status, text))
         }
     }
 }

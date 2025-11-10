@@ -115,10 +115,10 @@ impl AuthState {
         #[cfg(target_arch = "wasm32")]
         {
             let auth_url = AuthService::link_provider_url(&provider);
-                        let window = web_sys::window().expect("no global `window` exists");
-                        let location = window.location();
-                        let _ = location.set_href(&auth_url);
-                    }
+            let window = web_sys::window().expect("no global `window` exists");
+            let location = window.location();
+            let _ = location.set_href(&auth_url);
+        }
         #[cfg(not(target_arch = "wasm32"))]
         {
             let _ = provider; // Suppress unused variable warning on non-WASM targets
