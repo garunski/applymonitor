@@ -1,7 +1,7 @@
-use worker::*;
-use crate::common::db::get_d1;
 use crate::common::cors::get_cors;
+use crate::common::db::get_d1;
 use serde::{Deserialize, Serialize};
+use worker::*;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Job {
@@ -14,11 +14,12 @@ pub struct Job {
     pub updated_at: Option<String>,
 }
 
-pub async fn handler(mut req: Request, ctx: RouteContext<()>) -> Result<Response> {
+pub async fn handler(req: Request, ctx: RouteContext<()>) -> Result<Response> {
     let db = get_d1(&ctx.env)?;
     let method = req.method();
 
-    let job_id = ctx.param("id")
+    let job_id = ctx
+        .param("id")
         .and_then(|id_str| id_str.parse::<i64>().ok());
 
     match method {
@@ -29,9 +30,7 @@ pub async fn handler(mut req: Request, ctx: RouteContext<()>) -> Result<Response
                 list_jobs(&db).await
             }
         }
-        Method::Post => {
-            create_job(&db, req).await
-        }
+        Method::Post => create_job(&db, req).await,
         Method::Put => {
             if let Some(id) = job_id {
                 update_job(&db, id, req).await
@@ -81,17 +80,15 @@ async fn create_job(db: &D1Database, mut req: Request) -> Result<Response> {
         return Response::error("Title and company are required", 400);
     }
 
-    db.prepare(
-        "INSERT INTO jobs (title, company, location, status) VALUES (?, ?, ?, ?)"
-    )
-    .bind(&[
-        job.title.into(),
-        job.company.into(),
-        job.location.as_ref().map(|s| s.as_str()).into(),
-        job.status.into(),
-    ])?
-    .run()
-    .await?;
+    db.prepare("INSERT INTO jobs (title, company, location, status) VALUES (?, ?, ?, ?)")
+        .bind(&[
+            job.title.into(),
+            job.company.into(),
+            job.location.as_deref().into(),
+            job.status.into(),
+        ])?
+        .run()
+        .await?;
 
     let result = db
         .prepare("SELECT last_insert_rowid() as id")
@@ -144,7 +141,7 @@ async fn update_job(db: &D1Database, id: i64, mut req: Request) -> Result<Respon
     .bind(&[
         job.title.into(),
         job.company.into(),
-        job.location.as_ref().map(|s| s.as_str()).into(),
+        job.location.as_deref().into(),
         job.status.into(),
         id.into(),
     ])?

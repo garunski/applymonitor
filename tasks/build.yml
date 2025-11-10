@@ -1,9 +1,21 @@
 version: '3'
 
 tasks:
+  tailwind:
+    desc: Build Tailwind CSS
+    dir: "packages/tailwind"
+    cmds:
+      - |
+        if [ ! -d "node_modules" ]; then
+          echo "Installing Tailwind dependencies..."
+          npm install
+        fi
+      - npm run build
+
   web:
     desc: Build the web app for production
     dir: "{{.WEB_DIR}}"
+    deps: [tailwind]
     cmds:
       - dx bundle --release --web
 

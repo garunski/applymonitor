@@ -1,22 +1,23 @@
 use dioxus::prelude::*;
 
 use ui::Navbar;
-use views::{Blog, Home};
+use views::{Blog, Home, Jobs};
 
 mod views;
 
 #[derive(Debug, Clone, Routable, PartialEq)]
 #[rustfmt::skip]
-enum Route {
-    #[layout(WebNavbar)]
+pub enum Route {
     #[route("/")]
     Home {},
+    #[layout(WebNavbar)]
     #[route("/blog/:id")]
     Blog { id: i32 },
+    #[route("/jobs")]
+    Jobs {},
 }
 
-const FAVICON: Asset = asset!("/assets/favicon.ico");
-const MAIN_CSS: Asset = asset!("/assets/main.css");
+const TAILWIND_CSS: Asset = asset!("/assets/tailwind.css");
 
 fn main() {
     dioxus::launch(App);
@@ -28,8 +29,7 @@ fn App() -> Element {
 
     rsx! {
         // Global app resources
-        document::Link { rel: "icon", href: FAVICON }
-        document::Link { rel: "stylesheet", href: MAIN_CSS }
+        document::Stylesheet { href: TAILWIND_CSS }
 
         Router::<Route> {}
     }
@@ -48,6 +48,10 @@ fn WebNavbar() -> Element {
             Link {
                 to: Route::Blog { id: 1 },
                 "Blog"
+            }
+            Link {
+                to: Route::Jobs {},
+                "Jobs"
             }
         }
 

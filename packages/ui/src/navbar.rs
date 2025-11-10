@@ -1,15 +1,31 @@
 use dioxus::prelude::*;
 
-const NAVBAR_CSS: Asset = asset!("/assets/styling/navbar.css");
-
+/// Navbar component with Catalyst-inspired styling
 #[component]
 pub fn Navbar(children: Element) -> Element {
     rsx! {
-        document::Link { rel: "stylesheet", href: NAVBAR_CSS }
-
-        div {
-            id: "navbar",
-            {children}
+        nav {
+            class: "bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700",
+            div {
+                class: "mx-auto max-w-7xl px-4 sm:px-6 lg:px-8",
+                div {
+                    class: "flex h-16 justify-between items-center",
+                    div {
+                        class: "flex items-center",
+                        div {
+                            class: "flex-shrink-0",
+                            h1 {
+                                class: "text-xl font-semibold text-gray-900 dark:text-white",
+                                "ApplyMonitor"
+                            }
+                        }
+                    }
+                    div {
+                        class: "flex items-center space-x-4",
+                        {children}
+                    }
+                }
+            }
         }
     }
 }

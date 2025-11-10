@@ -1,0 +1,17 @@
+{
+  "name": "tailwind-builder",
+  "version": "1.0.0",
+  "description": "Centralized Tailwind CSS builder for the ApplyMonitor project",
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite build --watch"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.15",
+    "vite": "^6.4.1"
+  }
+}
+

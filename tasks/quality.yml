@@ -6,7 +6,7 @@ tasks:
     cmds:
       - cargo fmt --all
 
-  quality:
+  default:
     desc: Run all cargo quality checks (format, clippy, test, check) treating warnings as errors
     deps: [format]
     cmds:

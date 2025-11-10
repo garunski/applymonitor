@@ -1,9 +1,32 @@
 version: '3'
 
 tasks:
+  tailwind:dev:
+    desc: Build Tailwind CSS in watch mode
+    dir: "packages/tailwind"
+    cmds:
+      - |
+        if [ ! -d "node_modules" ]; then
+          echo "Installing Tailwind dependencies..."
+          npm install
+        fi
+      - npm run dev
+
+  tailwind:build:
+    desc: Build Tailwind CSS once
+    dir: "packages/tailwind"
+    cmds:
+      - |
+        if [ ! -d "node_modules" ]; then
+          echo "Installing Tailwind dependencies..."
+          npm install
+        fi
+      - npm run build
+
   web:
     desc: Run the Dioxus web app on port 9000
     dir: "{{.WEB_DIR}}"
+    deps: [tailwind:build]
     cmds:
       - dx serve --port 9000
     env:
