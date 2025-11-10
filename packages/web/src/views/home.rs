@@ -1,5 +1,9 @@
 use crate::Route;
 use dioxus::prelude::*;
+use dioxus_free_icons::{
+    icons::bs_icons::{BsBarChart, BsCalendar, BsEnvelope, BsFileText, BsRobot, BsSearch, BsStars},
+    Icon,
+};
 use ui::components::button::{Button, ButtonVariant};
 
 #[component]
@@ -41,9 +45,12 @@ pub fn Home() -> Element {
                             class: "lg:col-span-7",
                             div {
                                 class: "inline-flex items-center rounded-full px-4 py-1.5 text-sm font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 mb-6",
-                                span {
+                                Icon {
                                     class: "mr-2",
-                                    "✨"
+                                    width: 16,
+                                    height: 16,
+                                    fill: "currentColor",
+                                    icon: BsStars,
                                 }
                                 "Never lose track of an application again"
                             }
@@ -137,8 +144,13 @@ pub fn Home() -> Element {
                         div {
                             class: "flex items-start gap-6",
                             div {
-                                class: "flex-shrink-0 w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center text-3xl backdrop-blur-sm",
-                                "📧"
+                                class: "flex-shrink-0 w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm",
+                                Icon {
+                                    width: 32,
+                                    height: 32,
+                                    fill: "currentColor",
+                                    icon: BsEnvelope,
+                                }
                             }
                             div {
                                 class: "flex-1",
@@ -157,8 +169,13 @@ pub fn Home() -> Element {
                     div {
                         class: "bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-shadow",
                         div {
-                            class: "w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center text-2xl mb-4",
-                            "📊"
+                            class: "w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center mb-4",
+                            Icon {
+                                width: 24,
+                                height: 24,
+                                fill: "currentColor",
+                                icon: BsBarChart,
+                            }
                         }
                         h3 {
                             class: "text-xl font-bold text-gray-900 dark:text-white mb-3",
@@ -173,8 +190,13 @@ pub fn Home() -> Element {
                     div {
                         class: "bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-shadow",
                         div {
-                            class: "w-12 h-12 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl flex items-center justify-center text-2xl mb-4",
-                            "🤖"
+                            class: "w-12 h-12 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl flex items-center justify-center mb-4",
+                            Icon {
+                                width: 24,
+                                height: 24,
+                                fill: "currentColor",
+                                icon: BsRobot,
+                            }
                         }
                         h3 {
                             class: "text-xl font-bold text-gray-900 dark:text-white mb-3",
@@ -189,8 +211,13 @@ pub fn Home() -> Element {
                     div {
                         class: "bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-shadow",
                         div {
-                            class: "w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center text-2xl mb-4",
-                            "📅"
+                            class: "w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center mb-4",
+                            Icon {
+                                width: 24,
+                                height: 24,
+                                fill: "currentColor",
+                                icon: BsCalendar,
+                            }
                         }
                         h3 {
                             class: "text-xl font-bold text-gray-900 dark:text-white mb-3",
@@ -205,8 +232,13 @@ pub fn Home() -> Element {
                     div {
                         class: "bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-shadow",
                         div {
-                            class: "w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center text-2xl mb-4",
-                            "📝"
+                            class: "w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center mb-4",
+                            Icon {
+                                width: 24,
+                                height: 24,
+                                fill: "currentColor",
+                                icon: BsFileText,
+                            }
                         }
                         h3 {
                             class: "text-xl font-bold text-gray-900 dark:text-white mb-3",
@@ -221,8 +253,13 @@ pub fn Home() -> Element {
                     div {
                         class: "bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-shadow",
                         div {
-                            class: "w-12 h-12 bg-orange-100 dark:bg-orange-900/30 rounded-xl flex items-center justify-center text-2xl mb-4",
-                            "🔍"
+                            class: "w-12 h-12 bg-orange-100 dark:bg-orange-900/30 rounded-xl flex items-center justify-center mb-4",
+                            Icon {
+                                width: 24,
+                                height: 24,
+                                fill: "currentColor",
+                                icon: BsSearch,
+                            }
                         }
                         h3 {
                             class: "text-xl font-bold text-gray-900 dark:text-white mb-3",

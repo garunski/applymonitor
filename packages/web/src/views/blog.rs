@@ -21,21 +21,34 @@ pub fn Blog(id: i32) -> Element {
         }
 
         div {
-            id: "blog",
-
-            // Content
-            h1 { "This is blog #{id}!" }
-            p { "In blog #{id}, we show how the Dioxus router works and how URL parameters can be passed as props to our route components." }
-
-            // Navigation links
-            Link {
-                to: Route::Blog { id: id - 1 },
-                "Previous"
-            }
-            span { " <---> " }
-            Link {
-                to: Route::Blog { id: id + 1 },
-                "Next"
+            class: "px-4 sm:px-6 lg:px-8 py-6",
+            div {
+                class: "max-w-4xl mx-auto",
+                h1 {
+                    class: "text-3xl font-bold text-gray-900 dark:text-white mb-6",
+                    "This is blog #{id}!"
+                }
+                p {
+                    class: "text-gray-700 dark:text-gray-300 mb-6",
+                    "In blog #{id}, we show how the Dioxus router works and how URL parameters can be passed as props to our route components."
+                }
+                div {
+                    class: "flex gap-4",
+                    Link {
+                        to: Route::Blog { id: id - 1 },
+                        class: "text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300",
+                        "Previous"
+                    }
+                    span {
+                        class: "text-gray-500 dark:text-gray-400",
+                        " <---> "
+                    }
+                    Link {
+                        to: Route::Blog { id: id + 1 },
+                        class: "text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300",
+                        "Next"
+                    }
+                }
             }
         }
     }

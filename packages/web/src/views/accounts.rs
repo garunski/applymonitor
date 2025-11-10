@@ -11,9 +11,9 @@ pub fn Accounts() -> Element {
         }
 
         div {
-            class: "container mx-auto px-4 py-8 max-w-4xl",
+            class: "container mx-auto px-4 sm:px-6 lg:px-8 py-6 max-w-4xl",
             h1 {
-                class: "text-3xl font-bold text-gray-900 dark:text-white mb-8",
+                class: "text-3xl font-bold text-gray-900 dark:text-white mb-6",
                 "Account Settings"
             }
             AccountLinking {}

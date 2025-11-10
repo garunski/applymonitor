@@ -29,7 +29,7 @@ pub fn Dashboard() -> Element {
 
         // Quick action: View all jobs
         div {
-            class: "px-4 sm:px-6 lg:px-8 pb-8",
+            class: "px-4 sm:px-6 lg:px-8 pb-6",
             div {
                 class: "flex justify-center",
                 Link {

@@ -86,6 +86,31 @@ fn Counter() -> Element {
 
 ---
 
+## 📐 Spacing System
+
+Standard spacing values for consistent layout:
+
+### Standard Spacing Values
+
+* **Container padding**: `px-4 sm:px-6 lg:px-8 py-6` (16px/24px/32px horizontal, 24px vertical)
+* **Section margins**: `mb-6` (24px) for major sections
+* **Card padding**: `p-5` (20px)
+* **Form spacing**: `space-y-4` (16px)
+* **List item spacing**: `py-4` (16px)
+* **Small gaps**: `gap-3` (12px)
+* **Medium gaps**: `gap-4` (16px)
+* **Sidebar padding**: `px-6 py-6` (24px all around)
+* **Main content padding**: `py-6` (24px top/bottom)
+
+### Guidelines
+
+* Never use `py-8` or `py-10` for main content containers
+* Use `mb-6` instead of `mb-8` for section spacing
+* Ensure consistent padding on all sides (use `py-6` not `pb-4` alone)
+* Profile buttons should use `gap-x-3` with proper flex spacing (`min-w-0` on text containers)
+
+---
+
 ## ⚙️ Adding Components
 
 From `packages/ui`:
@@ -194,6 +219,7 @@ Delete all unused code immediately.
   <rule name="PlatformLogic">Place in platform crate (web, desktop, mobile)</rule>
   <rule name="Backend">Place in packages/api/main</rule>
   <rule name="Styling">Use Tailwind (tailwind/ package)</rule>
+  <rule name="Spacing">Use standard spacing: py-6 for containers, mb-6 for sections, px-6 py-6 for sidebar</rule>
   <rule name="AddComponents">Run dx components add &lt;name&gt;</rule>
   <rule name="Auth">
     Client: ui/services/auth_service.rs

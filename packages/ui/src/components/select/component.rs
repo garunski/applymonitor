@@ -1,4 +1,8 @@
 use dioxus::prelude::*;
+use dioxus_free_icons::{
+    icons::bs_icons::{BsCheck, BsChevronDown},
+    Icon,
+};
 use dioxus_primitives::select::{
     self, SelectGroupLabelProps, SelectGroupProps, SelectListProps, SelectOptionProps, SelectProps,
     SelectTriggerProps, SelectValueProps,
@@ -29,11 +33,12 @@ pub fn SelectTrigger(props: SelectTriggerProps) -> Element {
     rsx! {
         select::SelectTrigger { class: "select-trigger", attributes: props.attributes,
             {props.children}
-            svg {
+            Icon {
                 class: "select-expand-icon",
-                view_box: "0 0 24 24",
-                xmlns: "http://www.w3.org/2000/svg",
-                polyline { points: "6 9 12 15 18 9" }
+                width: 20,
+                height: 20,
+                fill: "currentColor",
+                icon: BsChevronDown,
             }
         }
     }
@@ -105,11 +110,12 @@ pub fn SelectOption<T: Clone + PartialEq + 'static>(props: SelectOptionProps<T>)
 pub fn SelectItemIndicator() -> Element {
     rsx! {
         select::SelectItemIndicator {
-            svg {
+            Icon {
                 class: "select-check-icon",
-                view_box: "0 0 24 24",
-                xmlns: "http://www.w3.org/2000/svg",
-                path { d: "M5 13l4 4L19 7" }
+                width: 20,
+                height: 20,
+                fill: "currentColor",
+                icon: BsCheck,
             }
         }
     }

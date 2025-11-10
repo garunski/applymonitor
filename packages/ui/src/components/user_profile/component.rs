@@ -3,6 +3,7 @@ use crate::components::dropdown_menu::{
 };
 use crate::state::use_auth;
 use dioxus::prelude::*;
+use dioxus_free_icons::{icons::bs_icons::BsChevronDown, Icon};
 
 #[component]
 pub fn UserProfile() -> Element {
@@ -53,15 +54,12 @@ pub fn UserProfile() -> Element {
                             class: "hidden sm:block text-sm font-medium text-gray-700 dark:text-gray-300",
                             {user.name.as_deref().unwrap_or_else(|| user.email.as_deref().unwrap_or("User"))}
                         }
-                        svg {
+                        Icon {
                             class: "h-4 w-4 text-gray-500 dark:text-gray-400",
-                            view_box: "0 0 20 20",
+                            width: 16,
+                            height: 16,
                             fill: "currentColor",
-                            path {
-                                fill_rule: "evenodd",
-                                d: "M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z",
-                                clip_rule: "evenodd"
-                            }
+                            icon: BsChevronDown,
                         }
                     }
                 }

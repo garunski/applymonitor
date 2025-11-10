@@ -6,6 +6,10 @@ use crate::job_form::JobForm;
 use crate::services::jobs_service::Job;
 use crate::state::use_jobs;
 use dioxus::prelude::*;
+use dioxus_free_icons::{
+    icons::bs_icons::{BsBarChart, BsBriefcase, BsFileText, BsTrophy, BsXCircle},
+    Icon,
+};
 
 /// Dashboard component showing job statistics and recent applications
 #[component]
@@ -28,10 +32,10 @@ pub fn DashboardContent() -> Element {
 
     rsx! {
         div {
-            class: "px-4 sm:px-6 lg:px-8 py-8",
+            class: "px-4 sm:px-6 lg:px-8 py-6",
             // Header
             div {
-                class: "sm:flex sm:items-center sm:justify-between mb-8",
+                class: "sm:flex sm:items-center sm:justify-between mb-6",
                 div {
                     h1 {
                         class: "text-3xl font-bold text-gray-900 dark:text-white",
@@ -88,7 +92,7 @@ pub fn DashboardContent() -> Element {
             if !*jobs_state.loading.read() && jobs_state.error.read().is_none() {
                 // Statistics cards
                 div {
-                    class: "grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-5 mb-8",
+                    class: "grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-5 mb-6",
                     // Total applications
                     div {
                         class: "bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg",
@@ -98,9 +102,11 @@ pub fn DashboardContent() -> Element {
                                 class: "flex items-center",
                                 div {
                                     class: "flex-shrink-0",
-                                    div {
-                                        class: "text-2xl",
-                                        "📊"
+                                    Icon {
+                                        width: 24,
+                                        height: 24,
+                                        fill: "currentColor",
+                                        icon: BsBarChart,
                                     }
                                 }
                                 div {
@@ -129,9 +135,11 @@ pub fn DashboardContent() -> Element {
                                 class: "flex items-center",
                                 div {
                                     class: "flex-shrink-0",
-                                    div {
-                                        class: "text-2xl",
-                                        "📝"
+                                    Icon {
+                                        width: 24,
+                                        height: 24,
+                                        fill: "currentColor",
+                                        icon: BsFileText,
                                     }
                                 }
                                 div {
@@ -160,9 +168,11 @@ pub fn DashboardContent() -> Element {
                                 class: "flex items-center",
                                 div {
                                     class: "flex-shrink-0",
-                                    div {
-                                        class: "text-2xl",
-                                        "💼"
+                                    Icon {
+                                        width: 24,
+                                        height: 24,
+                                        fill: "currentColor",
+                                        icon: BsBriefcase,
                                     }
                                 }
                                 div {
@@ -191,9 +201,11 @@ pub fn DashboardContent() -> Element {
                                 class: "flex items-center",
                                 div {
                                     class: "flex-shrink-0",
-                                    div {
-                                        class: "text-2xl",
-                                        "🎉"
+                                    Icon {
+                                        width: 24,
+                                        height: 24,
+                                        fill: "currentColor",
+                                        icon: BsTrophy,
                                     }
                                 }
                                 div {
@@ -222,9 +234,11 @@ pub fn DashboardContent() -> Element {
                                 class: "flex items-center",
                                 div {
                                     class: "flex-shrink-0",
-                                    div {
-                                        class: "text-2xl",
-                                        "❌"
+                                    Icon {
+                                        width: 24,
+                                        height: 24,
+                                        fill: "currentColor",
+                                        icon: BsXCircle,
                                     }
                                 }
                                 div {

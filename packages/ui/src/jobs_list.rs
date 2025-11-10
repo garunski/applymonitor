@@ -35,7 +35,7 @@ pub fn JobsList() -> Element {
 
     rsx! {
         div {
-            class: "px-4 sm:px-6 lg:px-8 py-8",
+            class: "px-4 sm:px-6 lg:px-8 py-6",
             div {
                 class: "sm:flex sm:items-center",
                 div {
@@ -62,7 +62,7 @@ pub fn JobsList() -> Element {
             // Loading state
             if *jobs_state.loading.read() {
                 div {
-                    class: "mt-8 text-center",
+                    class: "mt-6 text-center",
                     p {
                         class: "text-gray-500 dark:text-gray-400",
                         "Loading jobs..."
@@ -73,7 +73,7 @@ pub fn JobsList() -> Element {
             // Error state
             if let Some(error) = jobs_state.error.read().as_ref() {
                 div {
-                    class: "mt-8 rounded-md bg-red-50 dark:bg-red-900/20 p-4",
+                    class: "mt-6 rounded-md bg-red-50 dark:bg-red-900/20 p-4",
                     div {
                         class: "flex",
                         div {
@@ -94,7 +94,7 @@ pub fn JobsList() -> Element {
             // Jobs table
             if !*jobs_state.loading.read() && jobs_state.error.read().is_none() {
                 div {
-                    class: "mt-8 flow-root",
+                    class: "mt-6 flow-root",
                     Table {
                         TableHeader {
                             TableRow {
