@@ -38,11 +38,21 @@ async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
     if !is_public && !is_options {
         match require_auth(&req, &env).await {
             Ok(user_id) => {
-                console_log!("[Main] Auth check passed for route: {} {}, user_id: {}", method, path, user_id);
+                console_log!(
+                    "[Main] Auth check passed for route: {} {}, user_id: {}",
+                    method,
+                    path,
+                    user_id
+                );
                 // User is authenticated, continue
             }
             Err(e) => {
-                console_log!("[Main] Auth check FAILED for route: {} {}, error: {}", method, path, e);
+                console_log!(
+                    "[Main] Auth check FAILED for route: {} {}, error: {}",
+                    method,
+                    path,
+                    e
+                );
                 // Return 401 for unauthorized requests (CORS will be applied globally)
                 let error_message = format!("Unauthorized: {}", e);
                 console_log!("[Main] Returning 401 error: {}", error_message);

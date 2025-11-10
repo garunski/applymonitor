@@ -224,7 +224,10 @@ pub async fn callback(req: Request, ctx: RouteContext<()>) -> Result<Response> {
         .map_err(|e| worker::Error::RustError(format!("Failed to create session token: {}", e)))?;
 
     console_log!("[OAuth callback] Session created for user_id: {}", user_id);
-    console_log!("[OAuth callback] Session token length: {}", session_token.len());
+    console_log!(
+        "[OAuth callback] Session token length: {}",
+        session_token.len()
+    );
 
     // Get frontend URL for redirect (different for account linking)
     let frontend_url = if linking_user_id.is_some() {
@@ -248,7 +251,14 @@ pub async fn callback(req: Request, ctx: RouteContext<()>) -> Result<Response> {
 
     console_log!("[OAuth callback] Cookie name: {}", cookie_name);
     console_log!("[OAuth callback] Redirecting to frontend: {}", frontend_url);
-    console_log!("[OAuth callback] Secure flag: {}", if is_secure_cookie(&ctx.env) { "Secure" } else { "Not secure" });
+    console_log!(
+        "[OAuth callback] Secure flag: {}",
+        if is_secure_cookie(&ctx.env) {
+            "Secure"
+        } else {
+            "Not secure"
+        }
+    );
 
     // Create response with headers set from the start (headers are immutable after creation)
     let headers = Headers::new();
@@ -263,7 +273,11 @@ pub async fn callback(req: Request, ctx: RouteContext<()>) -> Result<Response> {
         "{}={}; HttpOnly; {}SameSite=Lax; Path=/; Max-Age=86400",
         cookie_name, session_token, secure_flag
     );
-    console_log!("[OAuth callback] Set-Cookie header: {}={}... (truncated)", cookie_name, &session_token[..session_token.len().min(20)]);
+    console_log!(
+        "[OAuth callback] Set-Cookie header: {}={}... (truncated)",
+        cookie_name,
+        &session_token[..session_token.len().min(20)]
+    );
     headers.set("Set-Cookie", &cookie_value)?;
     // Clear OAuth state cookies
     headers.append(

@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
 
 use ui::{use_auth_provider, Navbar};
-use views::{Accounts, Blog, Home, Jobs, Login};
+use views::{Accounts, Blog, Dashboard, Home, Jobs, Login};
 
 mod views;
 
@@ -13,6 +13,8 @@ pub enum Route {
     #[route("/login")]
     Login {},
     #[layout(WebNavbar)]
+    #[route("/dashboard")]
+    Dashboard {},
     #[route("/blog/:id")]
     Blog { id: i32 },
     #[route("/jobs")]
@@ -92,6 +94,10 @@ fn WebNavbar() -> Element {
             Link {
                 to: Route::Home {},
                 "Home"
+            }
+            Link {
+                to: Route::Dashboard {},
+                "Dashboard"
             }
             Link {
                 to: Route::Blog { id: 1 },

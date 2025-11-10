@@ -18,6 +18,9 @@ pub use jobs_list::JobsList;
 mod job_form;
 pub use job_form::JobForm;
 
+mod dashboard;
+pub use dashboard::DashboardContent;
+
 pub mod services;
 pub mod state;
 

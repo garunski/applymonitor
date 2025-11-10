@@ -21,11 +21,10 @@ pub fn get_session_cookie(req: &Request) -> Option<String> {
 }
 
 pub async fn require_auth(req: &Request, env: &Env) -> Result<String> {
-    let session_cookie =
-        get_session_cookie(req).ok_or_else(|| {
-            console_log!("[Auth] require_auth: No session cookie found");
-            anyhow!("No session cookie found")
-        })?;
+    let session_cookie = get_session_cookie(req).ok_or_else(|| {
+        console_log!("[Auth] require_auth: No session cookie found");
+        anyhow!("No session cookie found")
+    })?;
 
     console_log!("[Auth] require_auth: Session cookie found, verifying token...");
 
@@ -34,12 +33,14 @@ pub async fn require_auth(req: &Request, env: &Env) -> Result<String> {
         .map_err(|_| anyhow!("SESSION_SIGNING_KEY secret not found"))?
         .to_string();
 
-    let user_id = session::verify_session_token(&session_cookie, &signing_key)
-        .map_err(|e| {
-            console_log!("[Auth] require_auth: Token verification failed: {}", e);
-            anyhow!("Invalid session token: {}", e)
-        })?;
+    let user_id = session::verify_session_token(&session_cookie, &signing_key).map_err(|e| {
+        console_log!("[Auth] require_auth: Token verification failed: {}", e);
+        anyhow!("Invalid session token: {}", e)
+    })?;
 
-    console_log!("[Auth] require_auth: Token verified successfully, user_id: {}", user_id);
+    console_log!(
+        "[Auth] require_auth: Token verified successfully, user_id: {}",
+        user_id
+    );
     Ok(user_id)
 }
