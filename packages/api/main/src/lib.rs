@@ -7,7 +7,7 @@ mod types;
 
 use common::auth::require_auth;
 use common::cors::get_cors;
-use endpoints::{auth, health, jobs, root, test};
+use endpoints::{auth, health, jobs, root};
 
 #[event(fetch)]
 async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
@@ -19,9 +19,17 @@ async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
 
     // Public routes that don't require authentication
     let is_public = matches!(
-        path.as_str(),
-        "/" | "/health" | "/auth/login" | "/auth/callback" | "/auth/logout"
-    ) && method == Method::Get;
+        (path.as_str(), method.clone()),
+        ("/", Method::Get)
+            | ("/health", Method::Get)
+            | ("/auth/login", Method::Get)
+            | ("/auth/callback", Method::Get)
+            | ("/auth/logout", Method::Get)
+            | ("/auth/register", Method::Post)
+            | ("/auth/login/local", Method::Post)
+            | ("/auth/password-reset/request", Method::Post)
+            | ("/auth/password-reset/confirm", Method::Post)
+    );
 
     // OPTIONS requests (CORS preflight) should always be allowed through without authentication
     let is_options = method == Method::Options;
@@ -64,12 +72,50 @@ async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
                 .await
                 .map_err(|e| worker::Error::RustError(format!("{}", e)))
         })
+        // Public auth endpoints (POST)
+        .post_async("/auth/register", |req, ctx| async move {
+            auth::register(req, ctx)
+                .await
+                .map_err(|e| worker::Error::RustError(format!("{}", e)))
+        })
+        .post_async("/auth/login/local", |req, ctx| async move {
+            auth::login_local(req, ctx)
+                .await
+                .map_err(|e| worker::Error::RustError(format!("{}", e)))
+        })
+        .post_async("/auth/password-reset/request", |req, ctx| async move {
+            auth::request_password_reset(req, ctx)
+                .await
+                .map_err(|e| worker::Error::RustError(format!("{}", e)))
+        })
+        .post_async("/auth/password-reset/confirm", |req, ctx| async move {
+            auth::confirm_password_reset(req, ctx)
+                .await
+                .map_err(|e| worker::Error::RustError(format!("{}", e)))
+        })
+        .options("/auth/register", |_, _| Response::ok(""))
+        .options("/auth/login/local", |_, _| Response::ok(""))
+        .options("/auth/password-reset/request", |_, _| Response::ok(""))
+        .options("/auth/password-reset/confirm", |_, _| Response::ok(""))
         // Protected API routes
         .get_async(
             "/api/me",
             |req, ctx| async move { auth::me(req, ctx).await },
         )
         .options("/api/me", |_, _| Response::ok(""))
+        // Protected auth endpoints
+        .get_async("/auth/link", |req, ctx| async move {
+            auth::link_provider_endpoint(req, ctx)
+                .await
+                .map_err(|e| worker::Error::RustError(format!("{}", e)))
+        })
+        .post_async("/auth/unlink", |req, ctx| async move {
+            auth::unlink_provider_endpoint(req, ctx)
+                .await
+                .map_err(|e| worker::Error::RustError(format!("{}", e)))
+        })
+        .options("/auth/link", |_, _| Response::ok(""))
+        .options("/auth/unlink", |_, _| Response::ok(""))
         // Protected job routes
         .get_async(
             "/jobs",
@@ -90,9 +136,6 @@ async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
         })
         .options("/jobs", |_, _| Response::ok(""))
         .options("/jobs/:id", |_, _| Response::ok(""))
-        // Test route (protected)
-        .get_async("/test", test::handler)
-        .options("/test", |_, _| Response::ok(""))
         .run(req, env)
         .await?;
 

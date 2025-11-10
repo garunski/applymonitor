@@ -45,14 +45,25 @@ tasks:
         echo ""
         echo "✅ Deployment complete!"
 
-  api:migrate:
+  db:migrate:
     desc: Apply database migrations locally
     dir: "{{.API_DIR}}"
     cmds:
       - wrangler d1 migrations apply DB --local
 
-  api:migrate-prod:
+  db:migrate-prod:
     desc: Apply database migrations to production
     dir: "{{.API_DIR}}"
     cmds:
       - wrangler d1 migrations apply DB --remote
+
+  db:reset:
+    desc: Delete and recreate the local database
+    dir: "{{.API_DIR}}"
+    cmds:
+      - |
+        echo "🗑️  Deleting local database files..."
+        rm -rf .wrangler/state/v3/d1/* || echo "Local database files may not exist"
+        echo "🆕 Applying migrations to recreate database..."
+        wrangler d1 migrations apply DB --local
+        echo "✅ Database reset complete!"

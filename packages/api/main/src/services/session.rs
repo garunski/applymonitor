@@ -9,7 +9,7 @@ pub struct SessionClaims {
     pub iss: String, // issuer
 }
 
-pub fn make_session_token(user_id: i64, signing_key: &str, issuer: &str) -> Result<String> {
+pub fn make_session_token(user_id: &str, signing_key: &str, issuer: &str) -> Result<String> {
     // Create claims (exp will be set by jwt-simple based on duration)
     let claims = SessionClaims {
         sub: user_id.to_string(),

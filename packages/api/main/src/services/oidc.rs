@@ -1,8 +1,7 @@
 use anyhow::{anyhow, Result};
 use base64::{engine::general_purpose, Engine as _};
 use js_sys::Date;
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use serde::Deserialize;
 use worker::*;
 
 #[derive(Debug, Clone)]
@@ -10,8 +9,6 @@ pub struct OIDCProvider {
     pub issuer: String,
     pub authorization_endpoint: String,
     pub token_endpoint: String,
-    #[allow(dead_code)]
-    pub jwks_uri: String,
     pub client_id: String,
     pub client_secret: String,
 }
@@ -21,28 +18,11 @@ struct OIDCDiscovery {
     issuer: String,
     authorization_endpoint: String,
     token_endpoint: String,
-    jwks_uri: String,
-}
-
-#[allow(dead_code)]
-#[derive(Debug, Serialize)]
-struct TokenRequest {
-    grant_type: String,
-    code: String,
-    redirect_uri: String,
-    client_id: String,
-    client_secret: String,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct TokenResponse {
-    #[allow(dead_code)]
-    pub access_token: String,
     pub id_token: String,
-    #[allow(dead_code)]
-    pub token_type: String,
-    #[allow(dead_code)]
-    pub expires_in: Option<u64>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -54,8 +34,6 @@ pub struct IDTokenClaims {
     pub iss: String,
     pub aud: String,
     pub exp: i64,
-    #[allow(dead_code)]
-    pub iat: Option<i64>,
     pub nonce: Option<String>,
 }
 
@@ -89,7 +67,6 @@ impl OIDCProvider {
             issuer: discovery.issuer,
             authorization_endpoint: discovery.authorization_endpoint,
             token_endpoint: discovery.token_endpoint,
-            jwks_uri: discovery.jwks_uri,
             client_id,
             client_secret,
         })
@@ -198,21 +175,5 @@ impl OIDCProvider {
         // In production, you should fetch JWKS and verify the signature
 
         Ok(claims)
-    }
-
-    #[allow(dead_code)]
-    pub async fn fetch_jwks(&self) -> Result<Value> {
-        let req = Request::new(&self.jwks_uri, Method::Get)?;
-        let mut resp = Fetch::Request(req).send().await?;
-
-        if resp.status_code() != 200 {
-            return Err(anyhow!(
-                "Failed to fetch JWKS: status {}",
-                resp.status_code()
-            ));
-        }
-
-        let jwks: Value = resp.json().await?;
-        Ok(jwks)
     }
 }

@@ -1,10 +1,13 @@
+use crate::common::auth::require_auth;
 use crate::common::db::get_d1;
-use crate::services::db::{get_user_by_id, upsert_user};
+use crate::services::db::{find_or_create_user, link_provider};
 use crate::services::oidc::OIDCProvider;
+use crate::services::password;
 use crate::services::session;
-use serde_json::json;
 use std::collections::HashMap;
 use worker::*;
+
+use super::helpers::{extract_cookie_value, get_api_base_url, is_secure_cookie};
 
 pub async fn login(req: Request, ctx: RouteContext<()>) -> Result<Response> {
     let url = req.url()?;
@@ -17,9 +20,11 @@ pub async fn login(req: Request, ctx: RouteContext<()>) -> Result<Response> {
         return Response::error("Unsupported provider", 400);
     }
 
-    // Generate state and nonce for CSRF protection
-    let state = generate_random_string(32);
-    let nonce = generate_random_string(32);
+    // Generate state and nonce for CSRF protection using secure random
+    let state = password::generate_secure_token()
+        .map_err(|e| worker::Error::RustError(format!("Failed to generate state: {}", e)))?;
+    let nonce = password::generate_secure_token()
+        .map_err(|e| worker::Error::RustError(format!("Failed to generate nonce: {}", e)))?;
 
     let oidc = OIDCProvider::discover(&ctx.env, "https://accounts.google.com")
         .await
@@ -38,7 +43,15 @@ pub async fn login(req: Request, ctx: RouteContext<()>) -> Result<Response> {
     let redirect_uri = format!("{}/auth/callback", get_api_base_url(&ctx.env)?);
     let auth_url = oidc.build_authorization_url(&redirect_uri, &state, &nonce);
 
-    // Set state and nonce cookies
+    // Check for account linking mode (oauth_user_id cookie)
+    let cookie_header = req
+        .headers()
+        .get("Cookie")
+        .unwrap_or_default()
+        .unwrap_or_default();
+    let linking_user_id = extract_cookie_value(&cookie_header, "oauth_user_id");
+
+    // Set state, nonce, and provider cookies
     let secure_flag = if is_secure_cookie(&ctx.env) {
         "Secure; "
     } else {
@@ -53,17 +66,31 @@ pub async fn login(req: Request, ctx: RouteContext<()>) -> Result<Response> {
         "oauth_nonce={}; HttpOnly; {}SameSite=Lax; Path=/; Max-Age=600",
         nonce, secure_flag
     );
+    let provider_cookie = format!(
+        "oauth_provider={}; HttpOnly; {}SameSite=Lax; Path=/; Max-Age=600",
+        provider, secure_flag
+    );
 
-    // Return JSON response with OAuth URL and set cookies
+    // Set cookies and redirect directly to Google OAuth (not JSON response)
+    // This ensures cookies are set via navigation request, not fetch request
     let headers = Headers::new();
+    headers.set("Location", &auth_url)?;
     headers.set("Set-Cookie", &state_cookie)?;
     headers.append("Set-Cookie", &nonce_cookie)?;
+    headers.append("Set-Cookie", &provider_cookie)?;
 
-    let response_json = json!({
-        "auth_url": auth_url
-    });
+    // If linking mode, keep oauth_user_id cookie
+    if let Some(user_id) = linking_user_id {
+        let user_id_cookie = format!(
+            "oauth_user_id={}; HttpOnly; {}SameSite=Lax; Path=/; Max-Age=600",
+            user_id, secure_flag
+        );
+        headers.append("Set-Cookie", &user_id_cookie)?;
+    }
 
-    let response = Response::from_json(&response_json)?.with_headers(headers);
+    // Redirect directly to Google OAuth instead of returning JSON
+    // This ensures cookies are set via navigation request, which works across origins
+    let response = Response::ok("")?.with_headers(headers).with_status(302);
 
     Ok(response)
 }
@@ -88,6 +115,8 @@ pub async fn callback(req: Request, ctx: RouteContext<()>) -> Result<Response> {
         .unwrap_or_default();
     let cookie_state = extract_cookie_value(&cookie_header, "oauth_state");
     let cookie_nonce = extract_cookie_value(&cookie_header, "oauth_nonce");
+    let cookie_provider = extract_cookie_value(&cookie_header, "oauth_provider");
+    let linking_user_id = extract_cookie_value(&cookie_header, "oauth_user_id");
 
     // Debug: log cookie state for troubleshooting
     // In production, you might want to remove this or make it conditional
@@ -132,18 +161,51 @@ pub async fn callback(req: Request, ctx: RouteContext<()>) -> Result<Response> {
         .await
         .map_err(|e| worker::Error::RustError(format!("Failed to validate ID token: {}", e)))?;
 
-    // Upsert user in database
+    // Get provider from cookie or default to google
+    let provider = cookie_provider.as_deref().unwrap_or("google");
+
+    // Find or create user with account linking support
     let db = get_d1(&ctx.env)?;
-    let user_id = upsert_user(
-        &db,
-        "google",
-        &claims.sub,
-        claims.email.as_deref(),
-        claims.name.as_deref(),
-        claims.picture.as_deref(),
-    )
-    .await
-    .map_err(|e| worker::Error::RustError(format!("Failed to upsert user: {}", e)))?;
+    let user_id = if let Some(ref linking_id) = linking_user_id {
+        // Account linking mode - verify session exists and matches
+        let linking_user_id_str = linking_id.to_string();
+
+        // Try to get session user_id (may not exist yet if this is the first login)
+        // For account linking, we require an existing session
+        let session_user_id = require_auth(&req, &ctx.env).await.map_err(|_| {
+            worker::Error::RustError(
+                "Authentication required for account linking. Please sign in first.".to_string(),
+            )
+        })?;
+
+        if session_user_id != linking_user_id_str {
+            return Response::error("Session user_id mismatch", 403);
+        }
+
+        // Check if provider already linked
+        match link_provider(&db, &linking_user_id_str, provider, &claims.sub).await {
+            Ok(_) => linking_user_id_str,
+            Err(e) => {
+                let error_msg = format!("{}", e);
+                if error_msg.contains("already linked to another account") {
+                    return Response::error("Provider already linked to another account", 409);
+                }
+                return Response::error(format!("Failed to link provider: {}", e), 500);
+            }
+        }
+    } else {
+        // Normal login flow
+        find_or_create_user(
+            &db,
+            provider,
+            &claims.sub,
+            claims.email.as_deref(),
+            claims.name.as_deref(),
+            claims.picture.as_deref(),
+        )
+        .await
+        .map_err(|e| worker::Error::RustError(format!("Failed to find or create user: {}", e)))?
+    };
 
     // Create session token
     let signing_key = ctx
@@ -158,15 +220,22 @@ pub async fn callback(req: Request, ctx: RouteContext<()>) -> Result<Response> {
         .map_err(|_| worker::Error::RustError("JWT_ISSUER not found".to_string()))?
         .to_string();
 
-    let session_token = session::make_session_token(user_id, &signing_key, &jwt_issuer)
+    let session_token = session::make_session_token(&user_id, &signing_key, &jwt_issuer)
         .map_err(|e| worker::Error::RustError(format!("Failed to create session token: {}", e)))?;
 
-    // Get frontend URL for redirect
-    let frontend_url = ctx
-        .env
-        .var("FRONTEND_URL")
-        .map(|v| v.to_string())
-        .unwrap_or_else(|_| "https://applymonitor.com".to_string());
+    // Get frontend URL for redirect (different for account linking)
+    let frontend_url = if linking_user_id.is_some() {
+        ctx.env
+            .var("FRONTEND_URL")
+            .map(|v| v.to_string())
+            .unwrap_or_else(|_| "https://applymonitor.com".to_string())
+            + "/settings/accounts"
+    } else {
+        ctx.env
+            .var("FRONTEND_URL")
+            .map(|v| v.to_string())
+            .unwrap_or_else(|_| "https://applymonitor.com".to_string())
+    };
 
     let cookie_name = ctx
         .env
@@ -186,7 +255,7 @@ pub async fn callback(req: Request, ctx: RouteContext<()>) -> Result<Response> {
     headers.set(
         "Set-Cookie",
         &format!(
-            "{}={}; HttpOnly; {}SameSite=Strict; Path=/; Max-Age=86400",
+            "{}={}; HttpOnly; {}SameSite=Lax; Path=/; Max-Age=86400",
             cookie_name, session_token, secure_flag
         ),
     )?;
@@ -194,17 +263,33 @@ pub async fn callback(req: Request, ctx: RouteContext<()>) -> Result<Response> {
     headers.append(
         "Set-Cookie",
         &format!(
-            "oauth_state=; HttpOnly; {}SameSite=Strict; Path=/; Max-Age=0",
+            "oauth_state=; HttpOnly; {}SameSite=Lax; Path=/; Max-Age=0",
             secure_flag
         ),
     )?;
     headers.append(
         "Set-Cookie",
         &format!(
-            "oauth_nonce=; HttpOnly; {}SameSite=Strict; Path=/; Max-Age=0",
+            "oauth_nonce=; HttpOnly; {}SameSite=Lax; Path=/; Max-Age=0",
             secure_flag
         ),
     )?;
+    headers.append(
+        "Set-Cookie",
+        &format!(
+            "oauth_provider=; HttpOnly; {}SameSite=Lax; Path=/; Max-Age=0",
+            secure_flag
+        ),
+    )?;
+    if linking_user_id.is_some() {
+        headers.append(
+            "Set-Cookie",
+            &format!(
+                "oauth_user_id=; HttpOnly; {}SameSite=Lax; Path=/; Max-Age=0",
+                secure_flag
+            ),
+        )?;
+    }
 
     let response = Response::ok("")?.with_headers(headers).with_status(302);
 
@@ -244,90 +329,4 @@ pub async fn logout(_req: Request, ctx: RouteContext<()>) -> Result<Response> {
     let response = Response::ok("")?.with_headers(headers).with_status(302);
 
     Ok(response)
-}
-
-pub async fn me(req: Request, ctx: RouteContext<()>) -> Result<Response> {
-    use crate::common::auth::require_auth;
-
-    // Note: Auth is already checked in lib.rs before routing, but we check again here
-    // for safety. If auth fails here, it means the check in lib.rs was bypassed somehow.
-    let user_id = match require_auth(&req, &ctx.env).await {
-        Ok(id) => id,
-        Err(e) => {
-            // Return error (CORS will be applied globally)
-            return Response::error(format!("Unauthorized: {}", e), 401);
-        }
-    };
-
-    let db = get_d1(&ctx.env)?;
-    let user = get_user_by_id(&db, user_id)
-        .await
-        .map_err(|e| worker::Error::RustError(format!("Failed to get user: {}", e)))?;
-
-    if let Some(user) = user {
-        let user_json = json!({
-            "id": user.id,
-            "provider": user.provider,
-            "email": user.email,
-            "name": user.name,
-            "avatar": user.avatar,
-            "created_at": user.created_at,
-            "last_login": user.last_login,
-        });
-
-        Response::from_json(&user_json)
-    } else {
-        Response::error("User not found", 404)
-    }
-}
-
-// Helper functions
-fn generate_random_string(length: usize) -> String {
-    use js_sys::Date;
-    use std::collections::hash_map::DefaultHasher;
-    use std::hash::{Hash, Hasher};
-
-    // Generate multiple hashes to ensure we have enough length
-    let mut hasher = DefaultHasher::new();
-    let timestamp = Date::now() as u64;
-    timestamp.hash(&mut hasher);
-    let hash1 = hasher.finish();
-
-    let mut hasher2 = DefaultHasher::new();
-    hash1.hash(&mut hasher2);
-    let hash2 = hasher2.finish();
-
-    // Concatenate both hashes to get a longer string
-    let combined = format!("{:x}{:x}", hash1, hash2);
-    // Take the requested length (combined is 32 hex chars, enough for most cases)
-    combined.chars().take(length).collect()
-}
-
-fn extract_cookie_value(cookie_header: &str, name: &str) -> Option<String> {
-    for cookie in cookie_header.split(';') {
-        let cookie = cookie.trim();
-        if cookie.starts_with(&format!("{}=", name)) {
-            return Some(cookie[name.len() + 1..].to_string());
-        }
-    }
-    None
-}
-
-fn get_api_base_url(env: &Env) -> worker::Result<String> {
-    // Try to get from environment variable or use default
-    if let Ok(url) = env.var("API_BASE_URL") {
-        return Ok(url.to_string());
-    }
-
-    // Default to production URL
-    Ok("https://api.applymonitor.com".to_string())
-}
-
-fn is_secure_cookie(env: &Env) -> bool {
-    // Check if API_BASE_URL starts with https://
-    if let Ok(url) = env.var("API_BASE_URL") {
-        return url.to_string().starts_with("https://");
-    }
-    // Default to secure for production
-    true
 }

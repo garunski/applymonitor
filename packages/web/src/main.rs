@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
 
 use ui::{use_auth_provider, Navbar};
-use views::{Blog, Home, Jobs, Login};
+use views::{Accounts, Blog, Home, Jobs, Login};
 
 mod views;
 
@@ -17,6 +17,8 @@ pub enum Route {
     Blog { id: i32 },
     #[route("/jobs")]
     Jobs {},
+    #[route("/settings/accounts")]
+    Accounts {},
 }
 
 const TAILWIND_CSS: Asset = asset!("/assets/tailwind.css");

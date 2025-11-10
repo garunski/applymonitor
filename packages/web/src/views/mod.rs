@@ -9,3 +9,6 @@ pub use jobs_view::Jobs;
 
 mod login;
 pub use login::Login;
+
+mod accounts;
+pub use accounts::Accounts;

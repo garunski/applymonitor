@@ -1,8 +1,0 @@
-CREATE TABLE IF NOT EXISTS test_items (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
-
-INSERT INTO test_items (name) VALUES ('Test Item');
-

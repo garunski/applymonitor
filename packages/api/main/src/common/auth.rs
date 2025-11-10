@@ -16,7 +16,7 @@ pub fn get_session_cookie(req: &Request) -> Option<String> {
     None
 }
 
-pub async fn require_auth(req: &Request, env: &Env) -> Result<i64> {
+pub async fn require_auth(req: &Request, env: &Env) -> Result<String> {
     let session_cookie =
         get_session_cookie(req).ok_or_else(|| anyhow!("No session cookie found"))?;
 
@@ -28,10 +28,5 @@ pub async fn require_auth(req: &Request, env: &Env) -> Result<i64> {
     let claims = session::verify_session_token(&session_cookie, &signing_key)
         .map_err(|e| anyhow!("Invalid session token: {}", e))?;
 
-    let user_id = claims
-        .sub
-        .parse::<i64>()
-        .map_err(|_| anyhow!("Invalid user ID in session token"))?;
-
-    Ok(user_id)
+    Ok(claims.sub)
 }

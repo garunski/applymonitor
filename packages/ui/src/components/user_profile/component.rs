@@ -38,9 +38,9 @@ pub fn UserProfile() -> Element {
                         // Toggle dropdown - simplified for now
                         // In a full implementation, you'd use a signal to track dropdown state
                     },
-                    if let Some(ref avatar) = user.avatar {
+                    if let Some(ref picture) = user.picture {
                         img {
-                            src: avatar.clone(),
+                            src: picture.clone(),
                             alt: user.name.as_deref().unwrap_or("User"),
                             class: "h-8 w-8 rounded-full"
                         }
