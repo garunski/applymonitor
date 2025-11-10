@@ -69,19 +69,11 @@ pub fn Home() -> Element {
                             div {
                                 class: "flex flex-col sm:flex-row gap-4",
                                 Link {
-                                    to: Route::Jobs {},
+                                    to: Route::Login {},
                                     Button {
                                         variant: ButtonVariant::Primary,
                                         class: "text-lg px-8 py-3",
-                                        "Start Tracking →"
-                                    }
-                                }
-                                Link {
-                                    to: Route::Jobs {},
-                                    Button {
-                                        variant: ButtonVariant::Ghost,
-                                        class: "text-lg px-8 py-3",
-                                        "View Dashboard"
+                                        "Get Started →"
                                     }
                                 }
                             }
@@ -266,19 +258,11 @@ pub fn Home() -> Element {
                         div {
                             class: "flex flex-col sm:flex-row gap-4 justify-center",
                             Link {
-                                to: Route::Jobs {},
+                                to: Route::Login {},
                                 Button {
                                     variant: ButtonVariant::Primary,
                                     class: "bg-white text-blue-600 hover:bg-blue-50 text-lg px-8 py-3 shadow-lg",
-                                    "Start Free →"
-                                }
-                            }
-                            Link {
-                                to: Route::Jobs {},
-                                Button {
-                                    variant: ButtonVariant::Ghost,
-                                    class: "bg-white/10 text-white border-white/20 hover:bg-white/20 text-lg px-8 py-3 backdrop-blur-sm",
-                                    "See How It Works"
+                                    "Get Started →"
                                 }
                             }
                         }

@@ -1,4 +1,3 @@
-use crate::common::cors::get_cors;
 use crate::common::db::get_d1;
 use worker::*;
 
@@ -15,6 +14,5 @@ pub async fn handler(_req: Request, ctx: RouteContext<()>) -> Result<Response> {
         "service": "api"
     });
 
-    let response = Response::from_json(&health_response)?;
-    response.with_cors(&get_cors())
+    Response::from_json(&health_response)
 }

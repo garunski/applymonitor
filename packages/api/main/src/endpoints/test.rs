@@ -1,4 +1,3 @@
-use crate::common::cors::get_cors;
 use crate::common::db::get_d1;
 use worker::*;
 
@@ -19,6 +18,5 @@ pub async fn handler(_req: Request, ctx: RouteContext<()>) -> Result<Response> {
         None => "No items found".to_string(),
     };
 
-    let response = Response::ok(text)?;
-    response.with_cors(&get_cors())
+    Response::ok(text)
 }

@@ -15,11 +15,21 @@ tasks:
         cargo fmt --all -- --check
       - |
         echo "🔍 Running clippy (treating warnings as errors)..."
-        cargo clippy --workspace -- -D warnings
+        cargo clippy --package ui --package web -- -D warnings
       - |
         echo "🔍 Running tests..."
-        cargo test --workspace
+        cargo test --package ui --package web
       - |
-        echo "🔍 Checking compilation..."
-        cargo check --workspace
+        echo "🔍 Checking compilation (native target)..."
+        cargo check --package ui --package web
+      - |
+        echo "🔍 Checking compilation (WASM target for web packages and API)..."
+        cargo check --package ui --target wasm32-unknown-unknown
+        cargo check --package web --target wasm32-unknown-unknown
+        cargo check --package api-main --target wasm32-unknown-unknown
+      - |
+        echo "🔍 Running clippy for WASM target (treating warnings as errors)..."
+        cargo clippy --package ui --target wasm32-unknown-unknown -- -D warnings
+        cargo clippy --package web --target wasm32-unknown-unknown -- -D warnings
+        cargo clippy --package api-main --target wasm32-unknown-unknown -- -D warnings
       - echo "✅ All quality checks passed!"

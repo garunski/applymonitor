@@ -10,3 +10,9 @@ dist
 node_modules/
 .wrangler/
 build
+
+# Environment variables and secrets (NEVER commit these)
+.dev.vars
+.env
+.env.local
+.env.*.local

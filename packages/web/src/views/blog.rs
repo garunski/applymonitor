@@ -4,7 +4,7 @@ use dioxus::prelude::*;
 #[component]
 pub fn Blog(id: i32) -> Element {
     let title = format!("Blog #{id} - ApplyMonitor");
-    
+
     rsx! {
         document::Title { "{title}" }
         document::Meta {

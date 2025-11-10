@@ -1,0 +1,14 @@
+# Cloudflare Workers Local Development Secrets
+# Copy this file to .dev.vars and fill in your actual values
+# NEVER commit .dev.vars to version control
+
+API_BASE_URL=http://localhost:8000
+
+# Google OIDC Configuration
+OIDC_GOOGLE_CLIENT_ID=your_google_client_id_here
+OIDC_GOOGLE_CLIENT_SECRET=your_google_client_secret_here
+
+# Session Management
+# Generate a secure random string (e.g., using: openssl rand -hex 32)
+SESSION_SIGNING_KEY=your_secure_random_signing_key_here
+

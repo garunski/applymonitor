@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
 
-use ui::Navbar;
-use views::{Blog, Home, Jobs};
+use ui::{use_auth_provider, Navbar};
+use views::{Blog, Home, Jobs, Login};
 
 mod views;
 
@@ -10,6 +10,8 @@ mod views;
 pub enum Route {
     #[route("/")]
     Home {},
+    #[route("/login")]
+    Login {},
     #[layout(WebNavbar)]
     #[route("/blog/:id")]
     Blog { id: i32 },
@@ -25,10 +27,33 @@ fn main() {
 
 #[component]
 fn App() -> Element {
+    // Initialize auth state provider
+    let auth = use_auth_provider();
+
+    // Check for OIDC callback on mount
+    use_effect(move || {
+        #[cfg(target_arch = "wasm32")]
+        {
+            let window = web_sys::window().expect("no global `window` exists");
+            let location = window.location();
+            let href = location.href().unwrap_or_default();
+
+            // Check if we're coming back from OIDC callback
+            // The callback is handled server-side, so we just need to fetch user
+            if !href.contains("error") {
+                auth.fetch_user();
+            }
+        }
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let _ = auth;
+        }
+    });
+
     rsx! {
         // Global app resources
         document::Stylesheet { href: TAILWIND_CSS }
-        
+
         // Default metadata
         document::Title { "ApplyMonitor - Track Your Job Applications" }
         document::Meta {

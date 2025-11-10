@@ -1,4 +1,3 @@
-use crate::common::cors::get_cors;
 use crate::common::db::get_d1;
 use serde::{Deserialize, Serialize};
 use worker::*;
@@ -47,7 +46,6 @@ pub async fn handler(req: Request, ctx: RouteContext<()>) -> Result<Response> {
         }
         _ => Response::error("Method not allowed", 405),
     }
-    .and_then(|resp| resp.with_cors(&get_cors()))
 }
 
 async fn list_jobs(db: &D1Database) -> Result<Response> {

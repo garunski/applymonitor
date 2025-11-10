@@ -25,6 +25,11 @@ database_id = "9ce90777-7471-4cc4-be00-5084bfa259c3"
 pattern = "api.applymonitor.com/*"
 zone_name = "applymonitor.com"
 
+[vars]
+JWT_ISSUER = "https://api.applymonitor.com"
+SESSION_COOKIE_NAME = "session"
+FRONTEND_URL = "https://applymonitor.com"
+
 [observability]
 [observability.logs]
 enabled = true

@@ -22,3 +22,9 @@ pub mod services;
 pub mod state;
 
 pub mod components;
+
+// Re-export commonly used components
+pub use components::login_button::LoginButton;
+pub use components::login_page::LoginPage;
+pub use components::user_profile::UserProfile;
+pub use state::{use_auth, use_auth_provider};
