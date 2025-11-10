@@ -4,6 +4,19 @@ use dioxus::prelude::*;
 #[component]
 pub fn Blog(id: i32) -> Element {
     rsx! {
+        document::Title { format!("Blog #{id} - ApplyMonitor") }
+        document::Meta {
+            name: "description",
+            content: "Blog post about job application tracking and career development.",
+        }
+        document::Meta {
+            property: "og:title",
+            content: format!("Blog #{id} - ApplyMonitor"),
+        }
+        document::Meta {
+            property: "og:description",
+            content: "Blog post about job application tracking and career development.",
+        }
 
         div {
             id: "blog",

@@ -1,9 +1,19 @@
-//! API configuration
-
-/// Get the base URL for the API
-/// Returns `http://localhost:8000` for development or `https://api.applymonitor.com` for production
 pub fn get_api_base_url() -> String {
-    // For now, use localhost for development
-    // In the future, this could check environment variables or build-time configuration
+    if let Ok(url) = std::env::var("API_BASE_URL") {
+        if !url.is_empty() {
+            return url;
+        }
+    }
+
+    #[cfg(feature = "api-prod")]
+    {
+        return "https://api.applymonitor.com".to_string();
+    }
+
+    #[cfg(feature = "api-staging")]
+    {
+        return "https://api-staging.applymonitor.com".to_string();
+    }
+
     "http://localhost:8000".to_string()
 }

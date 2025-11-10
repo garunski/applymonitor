@@ -10,6 +10,20 @@ pub fn Jobs() -> Element {
     use_jobs_provider();
 
     rsx! {
+        document::Title { "Jobs - ApplyMonitor" }
+        document::Meta {
+            name: "description",
+            content: "View and manage all your job applications. Track application status, schedule follow-ups, and never lose track of an opportunity.",
+        }
+        document::Meta {
+            property: "og:title",
+            content: "Jobs - ApplyMonitor",
+        }
+        document::Meta {
+            property: "og:description",
+            content: "View and manage all your job applications. Track application status, schedule follow-ups, and never lose track of an opportunity.",
+        }
+
         JobsList {}
     }
 }

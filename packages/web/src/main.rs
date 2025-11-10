@@ -25,11 +25,32 @@ fn main() {
 
 #[component]
 fn App() -> Element {
-    // Build cool things ✌️
-
     rsx! {
         // Global app resources
         document::Stylesheet { href: TAILWIND_CSS }
+        
+        // Default metadata
+        document::Title { "ApplyMonitor - Track Your Job Applications" }
+        document::Meta {
+            name: "description",
+            content: "Track and manage your job applications effortlessly. Automatically organize applications, interviews, and follow-ups all in one place.",
+        }
+        document::Meta {
+            name: "viewport",
+            content: "width=device-width, initial-scale=1.0",
+        }
+        document::Meta {
+            property: "og:title",
+            content: "ApplyMonitor - Track Your Job Applications",
+        }
+        document::Meta {
+            property: "og:description",
+            content: "Track and manage your job applications effortlessly. Automatically organize applications, interviews, and follow-ups all in one place.",
+        }
+        document::Meta {
+            property: "og:type",
+            content: "website",
+        }
 
         Router::<Route> {}
     }

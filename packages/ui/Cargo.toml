@@ -11,4 +11,9 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 
 [features]
+default = ["api-dev"]
 server = []
+# API environment features
+api-dev = []      # Development API (http://localhost:8000) - default
+api-staging = []  # Staging API (https://api-staging.applymonitor.com)
+api-prod = []     # Production API (https://api.applymonitor.com)
