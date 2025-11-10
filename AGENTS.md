@@ -216,3 +216,29 @@ Delete all unused code immediately.
 > * Place code where it belongs
 > * Plan before fixing
 
+## LESSONS LEARNED
+
+Reusable Lessons Learned
+1. Signal types for component props
+Pattern: When using Dioxus primitives components, props often expect ReadSignal<T>, not plain values.
+Lesson: If a prop expects a ReadSignal<usize>, use use_signal(|| 0usize), not 0.
+Common occurrence: Dropdown menus, select components, and other primitives that need reactive state.
+2. String ownership in RSX
+Pattern: Passing &String to attributes or RSX nodes often fails; Dioxus expects owned values.
+Lesson: Clone strings when passing to attributes or displaying in RSX:
+```
+// ❌ Bad
+href: to  // &String
+
+// ✅ Good  
+href: to.clone()  // String
+```
+Common occurrence: Any component that takes string props or displays string values.
+3. Check component prop types before use
+Pattern: Dioxus primitives components have specific prop requirements that may differ from expectations.
+Lesson: When adding a new component via dx components add, check the generated component file to see what prop types it expects (especially for index, value, etc.).
+Common occurrence: Every time you add a new component from the primitives library.
+4. Router Links vs href links
+Pattern: Shared components can't use router Link directly; they need to accept navigation as props or children.
+Lesson: For shared components, accept navigation items as children/props. Use router Link in platform-specific wrappers.
+Common occurrence: Any shared layout/navigation component that needs routing.
