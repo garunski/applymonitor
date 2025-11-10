@@ -18,3 +18,4 @@ INSERT INTO jobs (title, company, location, status) VALUES
     ('Data Engineer', 'Analytics Pro', 'Boston, MA', 'rejected'),
     ('Mobile Developer', 'App Creators', 'Los Angeles, CA', 'open');
 
+
