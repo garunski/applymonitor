@@ -1,0 +1,67 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "run:web",
+      "type": "shell",
+      "command": "task run:web",
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "group": "run"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "run:db",
+      "type": "shell",
+      "command": "task run:db",
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "group": "run"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "run:api",
+      "type": "shell",
+      "command": "task run:api",
+      "dependsOn": "run:db",
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "group": "run"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "run:gmail-scanner",
+      "type": "shell",
+      "command": "task run:gmail-scanner",
+      "dependsOn": "run:db",
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "group": "run"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "run:all",
+      "dependsOn": [
+        "run:db",
+        "run:web",
+        "run:api",
+        "run:gmail-scanner"
+      ],
+      "dependsOrder": "parallel",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": []
+    }
+  ]
+}
+

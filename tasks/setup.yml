@@ -14,8 +14,8 @@ tasks:
     dir: "{{.API_DIR}}"
     cmds:
       - |
-        echo "Creating D1 database: applymonitor-db"
-        wrangler d1 create applymonitor-db || echo "Database may already exist"
+        echo "Creating D1 database: applymonitor-garun-local"
+        wrangler d1 create applymonitor-garun-local || echo "Database may already exist"
         echo "✅ Done! Update wrangler.toml with the database_id from the output above"
 
   pages:

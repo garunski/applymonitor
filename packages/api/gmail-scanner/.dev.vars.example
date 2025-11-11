@@ -1,0 +1,21 @@
+# Cloudflare Workers Local Development Secrets
+# Copy this file to .dev.vars and fill in your actual values
+# NEVER commit .dev.vars to version control
+
+# Gmail OAuth Configuration
+# Create OAuth 2.0 credentials at: https://console.cloud.google.com/apis/credentials
+# Authorized redirect URI: http://localhost:8001/gmail/callback (or your dev URL)
+GMAIL_CLIENT_ID=your_gmail_client_id_here
+GMAIL_CLIENT_SECRET=your_gmail_client_secret_here
+
+# Session Management
+# Must match the SESSION_SIGNING_KEY from the main API worker
+# Generate a secure random string (e.g., using: openssl rand -hex 32)
+SESSION_SIGNING_KEY=your_session_signing_key_here
+
+# Frontend URL for OAuth redirects
+FRONTEND_URL=http://localhost:9000
+
+# JWT Issuer (optional, defaults to https://api.applymonitor.com)
+# JWT_ISSUER=https://api.applymonitor.com
+

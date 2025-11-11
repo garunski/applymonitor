@@ -1,7 +1,7 @@
-name = "applymonitor-api"
+name = "applymonitor-gmail-scanner"
 compatibility_date = "2024-01-01"
 account_id = "dd9a9f25900c93ac23898bbaf306ff76"
-main = "main/build/index.js"
+main = "build/index.js"
 
 [[d1_databases]]
 binding = "DB"
@@ -10,7 +10,16 @@ database_id = "9ce90777-7471-4cc4-be00-5084bfa259c3"
 
 [build]
 command = "worker-build"
-cwd = "main"
+
+[env.local]
+[[env.local.d1_databases]]
+binding = "DB"
+database_name = "applymonitor-garun-local"
+database_id = "1601b5d7-742e-4d82-89a8-0b0791c2247f"
+
+# Scheduled trigger for automatic email scanning (commented for now)
+# [triggers]
+# crons = ["0 9 * * *"]  # Daily at 9 AM UTC
 
 [env.production]
 account_id = "dd9a9f25900c93ac23898bbaf306ff76"
@@ -21,13 +30,12 @@ binding = "DB"
 database_name = "applymonitor-db"
 database_id = "9ce90777-7471-4cc4-be00-5084bfa259c3"
 
-[[env.production.routes]]
-pattern = "api.applymonitor.com/*"
-zone_name = "applymonitor.com"
+# Production scheduled trigger (commented for now)
+# [env.production.triggers]
+# crons = ["0 9 * * *"]
 
 [vars]
 JWT_ISSUER = "https://api.applymonitor.com"
-SESSION_COOKIE_NAME = "session"
 FRONTEND_URL = "https://applymonitor.com"
 
 [observability]

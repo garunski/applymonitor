@@ -47,6 +47,22 @@ tasks:
         rustup target add wasm32-unknown-unknown || true
       - worker-build
 
+  gmail-scanner:
+    desc: Build the Gmail Scanner Worker
+    dir: "{{.API_DIR}}/gmail-scanner"
+    cmds:
+      - worker-build
+
+  gmail-scanner:prod:
+    desc: Build the Gmail Scanner Worker for production
+    dir: "{{.API_DIR}}/gmail-scanner"
+    deps: [run:api:setup]
+    cmds:
+      - |
+        echo "Ensuring wasm32-unknown-unknown target is installed..."
+        rustup target add wasm32-unknown-unknown || true
+      - worker-build
+
   clean:
     desc: Clean build artifacts
     cmds:

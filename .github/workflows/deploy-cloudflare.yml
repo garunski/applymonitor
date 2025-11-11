@@ -45,7 +45,7 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           wranglerVersion: ${{ env.WRANGLER_VERSION }}
-          workingDirectory: packages/api
+          workingDirectory: packages/api/main
           command: d1 migrations apply applymonitor-db --remote
 
       - name: 🚀 Deploy API Worker
@@ -54,7 +54,44 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           wranglerVersion: ${{ env.WRANGLER_VERSION }}
-          workingDirectory: packages/api
+          workingDirectory: packages/api/main
+          command: deploy --env production
+
+  deploy-gmail-scanner:
+    name: 📧 Deploy Gmail Scanner Worker
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+
+    steps:
+      - name: 🧾 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Set up Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: 🧩 Cache Cargo dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: "cloudflare-rust-cache"
+          cache-all-crates: true
+
+      - name: 📦 Install worker-build
+        run: cargo install worker-build --locked
+
+      - name: ⚡ Install Wrangler
+        run: npm install -g wrangler@${{ env.WRANGLER_VERSION }}
+
+      - name: 🚀 Deploy Gmail Scanner Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: ${{ env.WRANGLER_VERSION }}
+          workingDirectory: packages/api/gmail-scanner
           command: deploy --env production
 
   deploy-web:

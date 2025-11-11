@@ -19,5 +19,5 @@ tasks:
           --local \
           --port=8788 \
           --worker-path=packages/api/build/index.js \
-          --binding=DB:applymonitor-db
+          --binding=DB:applymonitor-garun-local
 

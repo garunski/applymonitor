@@ -39,6 +39,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a23eb6b1614318a8071c9b2521f36b424b2c83db5eb3a0fead4a6c0809af6e61"
 
 [[package]]
+name = "api-gmail-scanner"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "base64",
+ "chrono",
+ "getrandom 0.2.16",
+ "jwt-simple",
+ "serde",
+ "serde_json",
+ "serde_urlencoded",
+ "url",
+ "worker",
+]
+
+[[package]]
 name = "api-main"
 version = "0.1.0"
 dependencies = [
@@ -507,6 +523,7 @@ dependencies = [
  "iana-time-zone",
  "js-sys",
  "num-traits",
+ "serde",
  "wasm-bindgen",
  "windows-link 0.2.1",
 ]

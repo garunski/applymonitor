@@ -31,7 +31,7 @@ tasks:
 
   prod:deploy-api:
     desc: Deploy API Worker
-    dir: "{{.API_DIR}}"
+    dir: "{{.API_DIR}}/main"
     internal: true
     cmds:
       - |
@@ -45,25 +45,49 @@ tasks:
         echo ""
         echo "✅ Deployment complete!"
 
-  db:migrate:
-    desc: Apply database migrations locally
-    dir: "{{.API_DIR}}"
-    cmds:
-      - wrangler d1 migrations apply DB --local
-
-  db:migrate-prod:
-    desc: Apply database migrations to production
-    dir: "{{.API_DIR}}"
-    cmds:
-      - wrangler d1 migrations apply DB --remote
-
-  db:reset:
-    desc: Delete and recreate the local database
-    dir: "{{.API_DIR}}"
+  prod:deploy-gmail-scanner:
+    desc: Deploy Gmail Scanner Worker
+    dir: "{{.API_DIR}}/gmail-scanner"
+    internal: true
     cmds:
       - |
-        echo "🗑️  Deleting local database files..."
-        rm -rf .wrangler/state/v3/d1/* || echo "Local database files may not exist"
-        echo "🆕 Applying migrations to recreate database..."
-        wrangler d1 migrations apply DB --local
-        echo "✅ Database reset complete!"
+        echo ""
+        echo "🔧 Deploying Gmail Scanner Worker..."
+        wrangler deploy --env production
+        echo ""
+        echo "✅ Gmail Scanner Worker deployment complete!"
+
+  db:migrate-local:
+    desc: Apply database migrations to local remote D1 database
+    dir: "{{.API_DIR}}/main"
+    cmds:
+      - wrangler d1 migrations apply DB --env local --remote
+
+  db:migrate-prod:
+    desc: Apply database migrations to production D1 database
+    dir: "{{.API_DIR}}/main"
+    cmds:
+      - wrangler d1 migrations apply DB --env production --remote
+
+  db:reset-local:
+    desc: Reset the local remote D1 database by dropping all tables and reapplying migrations
+    dir: "{{.API_DIR}}/main"
+    cmds:
+      - |
+        echo "🗑️  Dropping all tables from local database..."
+        ../../../tasks/drop_all_tables.sh --env local --remote || echo "Tables may not exist"
+        echo "🆕 Reapplying all migrations..."
+        wrangler d1 migrations apply DB --env local --remote
+        echo "✅ Local database reset complete!"
+
+  db:reset-prod:
+    desc: Reset the production D1 database by dropping all tables and reapplying migrations
+    dir: "{{.API_DIR}}/main"
+    cmds:
+      - |
+        echo "⚠️  WARNING: This will reset the PRODUCTION database!"
+        echo "🗑️  Dropping all tables from production database..."
+        ../../../tasks/drop_all_tables.sh --env production --remote || echo "Tables may not exist"
+        echo "🆕 Reapplying all migrations..."
+        wrangler d1 migrations apply DB --env production --remote
+        echo "✅ Production database reset complete!"
