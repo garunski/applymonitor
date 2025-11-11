@@ -1,3 +1,4 @@
+use crate::services::password;
 use anyhow::{anyhow, Result};
 use serde_json::Value;
 use worker::*;
@@ -36,10 +37,12 @@ pub async fn create_password_reset_token(
     token_hash: &str,
     expires_at: &str,
 ) -> Result<()> {
+    let token_uuid =
+        password::generate_uuid().map_err(|e| anyhow!("Failed to generate UUID: {}", e))?;
     db.prepare(
-        "INSERT INTO password_reset_tokens (user_id, token_hash, expires_at) VALUES (?, ?, ?)",
+        "INSERT INTO password_reset_tokens (id, user_id, token_hash, expires_at) VALUES (?, ?, ?, ?)",
     )
-    .bind(&[user_id.into(), token_hash.into(), expires_at.into()])?
+    .bind(&[token_uuid.into(), user_id.into(), token_hash.into(), expires_at.into()])?
     .run()
     .await?;
     Ok(())

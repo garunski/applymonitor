@@ -36,7 +36,12 @@ fn main() {
 #[component]
 fn App() -> Element {
     // Initialize auth state provider
-    use_auth_provider();
+    let auth = use_auth_provider();
+
+    // Fetch user on mount
+    use_effect(move || {
+        auth.fetch_user();
+    });
 
     rsx! {
         // Global app resources

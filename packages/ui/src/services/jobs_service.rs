@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 /// Job struct matching API response
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Job {
-    pub id: Option<i64>,
+    pub id: Option<String>,
     pub title: String,
     pub company: String,
     pub location: Option<String>,
@@ -57,7 +57,7 @@ impl JobsService {
     }
 
     /// Fetch a single job by ID
-    pub async fn fetch_job(id: i64) -> Result<Job, ServiceError> {
+    pub async fn fetch_job(id: String) -> Result<Job, ServiceError> {
         let url = format!("{}/jobs/{}", get_api_base_url(), id);
 
         let response = http_client::get(&url).await?;
@@ -96,7 +96,7 @@ impl JobsService {
     }
 
     /// Update an existing job
-    pub async fn update_job(id: i64, job: UpdateJobRequest) -> Result<Job, ServiceError> {
+    pub async fn update_job(id: String, job: UpdateJobRequest) -> Result<Job, ServiceError> {
         let url = format!("{}/jobs/{}", get_api_base_url(), id);
 
         let body = serde_json::to_string(&job)
@@ -118,7 +118,7 @@ impl JobsService {
     }
 
     /// Delete a job
-    pub async fn delete_job(id: i64) -> Result<(), ServiceError> {
+    pub async fn delete_job(id: String) -> Result<(), ServiceError> {
         let url = format!("{}/jobs/{}", get_api_base_url(), id);
 
         let response = http_client::delete(&url).await?;

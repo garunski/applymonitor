@@ -1,5 +1,6 @@
 use crate::common::auth::require_auth;
 use crate::common::db::get_d1;
+use crate::common::uuid;
 use crate::services::gmail_api;
 use crate::services::gmail_oauth;
 use chrono::{DateTime, Duration, Utc};
@@ -118,23 +119,20 @@ pub async fn scan_emails(mut req: Request, env: Env) -> worker::Result<Response>
         return Response::error("Gmail not connected", 401);
     };
 
+    let scan_id = uuid::generate_uuid()
+        .map_err(|e| worker::Error::RustError(format!("Failed to generate UUID: {}", e)))?;
+
     db.prepare(
-        "INSERT INTO email_scans (user_id, start_date, end_date, status) VALUES (?, ?, ?, 'pending')",
+        "INSERT INTO email_scans (id, user_id, start_date, end_date, status) VALUES (?, ?, ?, ?, 'pending')",
     )
     .bind(&[
+        scan_id.clone().into(),
         user_id.clone().into(),
         start_date.to_rfc3339().into(),
         end_date.to_rfc3339().into(),
     ])?
     .run()
     .await?;
-
-    let scan_id = db
-        .prepare("SELECT last_insert_rowid() as id")
-        .first::<Value>(None)
-        .await?
-        .and_then(|row| row.get("id").and_then(|v| v.as_i64()))
-        .ok_or_else(|| worker::Error::RustError("Failed to get scan ID".to_string()))?;
 
     let query = gmail_api::build_date_query(&start_date, &end_date);
     let mut all_messages = Vec::new();
@@ -167,12 +165,14 @@ pub async fn scan_emails(mut req: Request, env: Env) -> worker::Result<Response>
         }
     }
 
+    let emails_found = all_messages.len() as i32;
+
     db.prepare(
         "UPDATE email_scans SET status = 'completed', emails_found = ?, completed_at = CURRENT_TIMESTAMP WHERE id = ?",
     )
     .bind(&[
-        (all_messages.len() as i64).into(),
-        scan_id.into(),
+        emails_found.into(),
+        scan_id.clone().into(),
     ])?
     .run()
     .await?;
@@ -184,7 +184,7 @@ pub async fn scan_emails(mut req: Request, env: Env) -> worker::Result<Response>
     }))
 }
 
-pub async fn get_scan(req: Request, env: Env, scan_id: i64) -> worker::Result<Response> {
+pub async fn get_scan(req: Request, env: Env, scan_id: String) -> worker::Result<Response> {
     let user_id = require_auth(&req, &env)
         .await
         .map_err(|e| worker::Error::RustError(format!("Unauthorized: {}", e)))?;

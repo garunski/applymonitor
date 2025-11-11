@@ -29,12 +29,58 @@ pub fn Accounts() -> Element {
             content: "Manage your account settings and connected providers.",
         }
 
-        div {
-            class: "container mx-auto px-4 sm:px-6 lg:px-8 py-6 max-w-4xl",
+        main {
             h1 {
-                class: "text-3xl font-bold text-gray-900 dark:text-white mb-6",
+                class: "sr-only",
                 "Account Settings"
             }
+
+            header {
+                class: "border-b border-gray-200 dark:border-white/5",
+                nav {
+                    class: "flex overflow-x-auto py-4",
+                    ul {
+                        role: "list",
+                        class: "flex min-w-full flex-none gap-x-6 px-4 text-sm/6 font-semibold text-gray-500 sm:px-6 lg:px-8 dark:text-gray-400",
+                        li {
+                            a {
+                                href: "#",
+                                class: "text-indigo-600 dark:text-indigo-400",
+                                "Account"
+                            }
+                        }
+                        li {
+                            a {
+                                href: "#",
+                                class: "",
+                                "Notifications"
+                            }
+                        }
+                        li {
+                            a {
+                                href: "#",
+                                class: "",
+                                "Billing"
+                            }
+                        }
+                        li {
+                            a {
+                                href: "#",
+                                class: "",
+                                "Teams"
+                            }
+                        }
+                        li {
+                            a {
+                                href: "#",
+                                class: "",
+                                "Integrations"
+                            }
+                        }
+                    }
+                }
+            }
+
             AccountLinking {}
         }
     }

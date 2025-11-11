@@ -4,10 +4,14 @@ mod common;
 mod handlers;
 mod services;
 
+use common::cors::get_cors;
 use handlers::{auth, scan};
 
 #[event(fetch)]
 async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
+    // Create CORS config early so we can use it for error responses too
+    let cors = get_cors(&env);
+
     let router = Router::new();
 
     let response = router
@@ -17,7 +21,7 @@ async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
         .get_async("/auth", |req, ctx| async move {
             auth::initiate_auth(req, ctx.env).await
         })
-        .get_async("/callback", |req, ctx| async move {
+        .get_async("/gmail/callback", |req, ctx| async move {
             auth::callback(req, ctx.env).await
         })
         .delete_async("/disconnect", |req, ctx| async move {
@@ -29,8 +33,8 @@ async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
         .get_async("/scan/:id", |req, ctx| async move {
             let scan_id = ctx
                 .param("id")
-                .and_then(|id_str| id_str.parse::<i64>().ok())
-                .ok_or_else(|| worker::Error::RustError("Invalid scan ID".to_string()))?;
+                .ok_or_else(|| worker::Error::RustError("Invalid scan ID".to_string()))?
+                .to_string();
             scan::get_scan(req, ctx.env, scan_id).await
         })
         .get_async("/scans", |req, ctx| async move {
@@ -38,15 +42,28 @@ async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
         })
         .options("/status", |_, _| Response::ok(""))
         .options("/auth", |_, _| Response::ok(""))
-        .options("/callback", |_, _| Response::ok(""))
+        .options("/gmail/callback", |_, _| Response::ok(""))
         .options("/disconnect", |_, _| Response::ok(""))
         .options("/scan", |_, _| Response::ok(""))
         .options("/scan/:id", |_, _| Response::ok(""))
         .options("/scans", |_, _| Response::ok(""))
         .run(req, env)
-        .await?;
+        .await;
 
-    Ok(response)
+    // Apply CORS to all responses, including errors
+    match response {
+        Ok(resp) => apply_cors(resp, &cors),
+        Err(e) => {
+            // Create error response with CORS
+            let error_resp = Response::error(&format!("Internal server error: {:?}", e), 500)?;
+            apply_cors(error_resp, &cors)
+        }
+    }
+}
+
+// Helper function to apply CORS headers to any response
+fn apply_cors(response: Response, cors: &Cors) -> Result<Response> {
+    response.with_cors(cors)
 }
 
 #[event(scheduled)]

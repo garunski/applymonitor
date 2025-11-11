@@ -11,12 +11,8 @@ pub fn Dashboard() -> Element {
     let auth = use_auth();
     let navigator = use_navigator();
 
-    // Fetch user on mount
-    use_effect(move || {
-        auth.fetch_user();
-    });
-
     // Redirect to login if not authenticated
+    // Note: User is already fetched by App component on mount
     use_effect(move || {
         let user = auth.user;
         let loading = auth.loading;

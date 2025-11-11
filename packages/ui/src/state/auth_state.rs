@@ -41,10 +41,11 @@ impl AuthState {
         let mut loading = self.loading;
         let mut error = self.error;
 
-        spawn(async move {
-            *loading.write() = true;
-            *error.write() = None;
+        // Set loading synchronously to prevent race conditions
+        *loading.write() = true;
+        *error.write() = None;
 
+        spawn(async move {
             match AuthService::fetch_current_user().await {
                 Ok(fetched_user) => {
                     *user.write() = Some(fetched_user);

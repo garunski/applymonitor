@@ -1,3 +1,4 @@
+use crate::services::password;
 use anyhow::{anyhow, Result};
 use serde_json::Value;
 use worker::*;
@@ -43,10 +44,19 @@ pub async fn link_provider(
     }
 
     // Link provider
-    db.prepare("INSERT INTO user_providers (user_id, provider, provider_id) VALUES (?, ?, ?)")
-        .bind(&[user_id.into(), provider.into(), provider_id.into()])?
-        .run()
-        .await?;
+    let provider_uuid =
+        password::generate_uuid().map_err(|e| anyhow!("Failed to generate UUID: {}", e))?;
+    db.prepare(
+        "INSERT INTO user_providers (id, user_id, provider, provider_id) VALUES (?, ?, ?, ?)",
+    )
+    .bind(&[
+        provider_uuid.into(),
+        user_id.into(),
+        provider.into(),
+        provider_id.into(),
+    ])?
+    .run()
+    .await?;
 
     Ok(())
 }
@@ -62,7 +72,7 @@ pub async fn unlink_provider(db: &D1Database, user_id: &str, provider: &str) -> 
 
     let count = providers_result
         .and_then(|row| row.get("count").and_then(|v| v.as_i64()))
-        .unwrap_or(0);
+        .unwrap_or(0i64);
 
     if count <= 1 {
         return Err(anyhow!("Cannot unlink last provider"));

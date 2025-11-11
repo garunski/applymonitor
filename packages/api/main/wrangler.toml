@@ -6,21 +6,21 @@ main = "build/index.js"
 [[d1_databases]]
 binding = "DB"
 database_name = "applymonitor-db"
-database_id = "9ce90777-7471-4cc4-be00-5084bfa259c3"
+database_id = "249cc634-c591-4b94-b4af-5e5d9197b52f"
 
 migrations_dir = "../migrations"
 
 [build]
 command = "worker-build"
 
-[env.local]
+[env.personal]
 account_id = "dd9a9f25900c93ac23898bbaf306ff76"
-[[env.local.d1_databases]]
+[[env.personal.d1_databases]]
 binding = "DB"
-database_name = "applymonitor-garun-local"
-database_id = "1601b5d7-742e-4d82-89a8-0b0791c2247f"
+database_name = "applymonitor-garun-personal"
+database_id = "52b4cb49-6e07-422e-8eb8-7fc23d6f178f"
 
-[env.local.vars]
+[env.personal.vars]
 JWT_ISSUER = "https://api.applymonitor.com"
 SESSION_COOKIE_NAME = "session"
 FRONTEND_URL = "https://applymonitor.com"
@@ -32,7 +32,12 @@ preview_urls = false
 [[env.production.d1_databases]]
 binding = "DB"
 database_name = "applymonitor-db"
-database_id = "9ce90777-7471-4cc4-be00-5084bfa259c3"
+database_id = "249cc634-c591-4b94-b4af-5e5d9197b52f"
+
+[env.production.vars]
+JWT_ISSUER = "https://api.applymonitor.com"
+SESSION_COOKIE_NAME = "session"
+FRONTEND_URL = "https://applymonitor.com"
 
 [[env.production.routes]]
 pattern = "api.applymonitor.com/*"

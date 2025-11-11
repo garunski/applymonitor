@@ -254,10 +254,19 @@ pub async fn create_local_user(
         .await?;
 
     // Link local provider
-    db.prepare("INSERT INTO user_providers (user_id, provider, provider_id) VALUES (?, ?, ?)")
-        .bind(&[user_id.clone().into(), "local".into(), email.into()])?
-        .run()
-        .await?;
+    let provider_uuid =
+        password::generate_uuid().map_err(|e| anyhow!("Failed to generate UUID: {}", e))?;
+    db.prepare(
+        "INSERT INTO user_providers (id, user_id, provider, provider_id) VALUES (?, ?, ?, ?)",
+    )
+    .bind(&[
+        provider_uuid.into(),
+        user_id.clone().into(),
+        "local".into(),
+        email.into(),
+    ])?
+    .run()
+    .await?;
 
     // Create credentials
     db.prepare("INSERT INTO user_credentials (user_id, password_hash) VALUES (?, ?)")

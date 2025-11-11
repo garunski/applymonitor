@@ -57,11 +57,11 @@ tasks:
         echo ""
         echo "✅ Gmail Scanner Worker deployment complete!"
 
-  db:migrate-local:
-    desc: Apply database migrations to local remote D1 database
+  db:migrate-personal:
+    desc: Apply database migrations to personal D1 database
     dir: "{{.API_DIR}}/main"
     cmds:
-      - wrangler d1 migrations apply DB --env local --remote
+      - wrangler d1 migrations apply DB --env personal --remote
 
   db:migrate-prod:
     desc: Apply database migrations to production D1 database
@@ -69,16 +69,16 @@ tasks:
     cmds:
       - wrangler d1 migrations apply DB --env production --remote
 
-  db:reset-local:
-    desc: Reset the local remote D1 database by dropping all tables and reapplying migrations
+  db:reset-personal:
+    desc: Reset the personal D1 database by dropping all tables and reapplying migrations
     dir: "{{.API_DIR}}/main"
     cmds:
       - |
-        echo "🗑️  Dropping all tables from local database..."
-        ../../../tasks/drop_all_tables.sh --env local --remote || echo "Tables may not exist"
+        echo "🗑️  Dropping all tables from personal database..."
+        wrangler d1 execute DB --env personal --remote --file ../scripts/drop_all_tables.sql || echo "Tables may not exist"
         echo "🆕 Reapplying all migrations..."
-        wrangler d1 migrations apply DB --env local --remote
-        echo "✅ Local database reset complete!"
+        wrangler d1 migrations apply DB --env personal --remote
+        echo "✅ Personal database reset complete!"
 
   db:reset-prod:
     desc: Reset the production D1 database by dropping all tables and reapplying migrations
@@ -87,7 +87,7 @@ tasks:
       - |
         echo "⚠️  WARNING: This will reset the PRODUCTION database!"
         echo "🗑️  Dropping all tables from production database..."
-        ../../../tasks/drop_all_tables.sh --env production --remote || echo "Tables may not exist"
+        wrangler d1 execute DB --env production --remote --file ../scripts/drop_all_tables.sql || echo "Tables may not exist"
         echo "🆕 Reapplying all migrations..."
         wrangler d1 migrations apply DB --env production --remote
         echo "✅ Production database reset complete!"

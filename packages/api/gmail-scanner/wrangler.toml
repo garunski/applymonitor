@@ -6,16 +6,16 @@ main = "build/index.js"
 [[d1_databases]]
 binding = "DB"
 database_name = "applymonitor-db"
-database_id = "9ce90777-7471-4cc4-be00-5084bfa259c3"
+database_id = "249cc634-c591-4b94-b4af-5e5d9197b52f"
 
 [build]
 command = "worker-build"
 
-[env.local]
-[[env.local.d1_databases]]
+[env.personal]
+[[env.personal.d1_databases]]
 binding = "DB"
-database_name = "applymonitor-garun-local"
-database_id = "1601b5d7-742e-4d82-89a8-0b0791c2247f"
+database_name = "applymonitor-garun-personal"
+database_id = "52b4cb49-6e07-422e-8eb8-7fc23d6f178f"
 
 # Scheduled trigger for automatic email scanning (commented for now)
 # [triggers]
@@ -28,7 +28,7 @@ preview_urls = false
 [[env.production.d1_databases]]
 binding = "DB"
 database_name = "applymonitor-db"
-database_id = "9ce90777-7471-4cc4-be00-5084bfa259c3"
+database_id = "249cc634-c591-4b94-b4af-5e5d9197b52f"
 
 # Production scheduled trigger (commented for now)
 # [env.production.triggers]

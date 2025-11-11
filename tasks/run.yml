@@ -45,25 +45,24 @@ tasks:
         fi
 
   db:
-    desc: Apply migrations to local remote D1 database
+    desc: Apply migrations to personal D1 database
     dir: "{{.API_DIR}}/main"
     cmds:
       - |
-        if ! wrangler d1 migrations list DB --env local --remote 2>/dev/null | grep -q "No migrations to apply"; then
-          echo "y" | wrangler d1 migrations apply DB --env local --remote 2>/dev/null || true
-        fi
+        echo "Applying migrations to personal database..."
+        echo "y" | wrangler d1 migrations apply DB --env personal --remote 2>/dev/null || true
 
   api:
     desc: Run the Cloudflare Workers API on port 8000
     deps: [api:setup, db]
     dir: "{{.API_DIR}}/main"
     cmds:
-      - wrangler dev --port 8000 --env local
+      - wrangler dev --port 8000 --inspector-port 9229 --env personal --remote
 
   gmail-scanner:
     desc: Run the Gmail Scanner Worker on port 8001
     deps: [api:setup, db]
     dir: "{{.API_DIR}}/gmail-scanner"
     cmds:
-      - wrangler dev --port 8001 --env local
+      - wrangler dev --port 8001 --inspector-port 9230 --env personal --remote
 

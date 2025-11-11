@@ -1,5 +1,5 @@
 -- Drop all tables to reset the database
--- This script is used by db:reset-local and db:reset-prod tasks
+-- Used by db:reset-local and db:reset-prod tasks
 
 DROP TABLE IF EXISTS email_scans;
 DROP TABLE IF EXISTS gmail_tokens;

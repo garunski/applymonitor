@@ -16,8 +16,7 @@ tasks:
         echo ""
         wrangler pages dev target/dx/web/release/web/public \
           --compatibility-date=2024-01-01 \
-          --local \
           --port=8788 \
           --worker-path=packages/api/build/index.js \
-          --binding=DB:applymonitor-garun-local
+          --binding=DB:applymonitor-garun-personal
 

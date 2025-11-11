@@ -19,7 +19,7 @@ pub async fn initiate_auth(req: Request, env: Env) -> worker::Result<Response> {
         .map_err(|_| worker::Error::RustError("GMAIL_CLIENT_ID secret not found".to_string()))?
         .to_string();
 
-    let redirect_uri = format!("{}/gmail/callback", get_base_url(&env)?);
+    let redirect_uri = format!("{}/gmail/callback", get_base_url(&req, &env)?);
 
     let mut state_bytes = [0u8; 32];
     getrandom(&mut state_bytes)
@@ -58,7 +58,7 @@ pub async fn callback(req: Request, env: Env) -> worker::Result<Response> {
         .map_err(|_| worker::Error::RustError("GMAIL_CLIENT_SECRET secret not found".to_string()))?
         .to_string();
 
-    let redirect_uri = format!("{}/gmail/callback", get_base_url(&env)?);
+    let redirect_uri = format!("{}/gmail/callback", get_base_url(&req, &env)?);
 
     let token_response =
         gmail_oauth::exchange_code(code, &client_id, &client_secret, &redirect_uri)
@@ -138,7 +138,13 @@ pub async fn status(req: Request, env: Env) -> worker::Result<Response> {
     }
 }
 
-fn get_base_url(env: &Env) -> worker::Result<String> {
+fn get_base_url(_req: &Request, env: &Env) -> worker::Result<String> {
+    // Try to get from environment variable or use default
+    if let Ok(url) = env.var("API_BASE_URL") {
+        return Ok(url.to_string());
+    }
+
+    // Default to production URL
     Ok(format!(
         "https://{}.workers.dev",
         env.var("WRANGLER_WORKER_NAME")

@@ -60,7 +60,7 @@ impl JobsState {
     }
 
     /// Fetch a single job by ID
-    pub fn fetch_job(&self, id: i64) {
+    pub fn fetch_job(&self, id: String) {
         let mut jobs = self.jobs;
         let mut loading = self.loading;
         let mut error = self.error;
@@ -117,10 +117,11 @@ impl JobsState {
     }
 
     /// Update an existing job
-    pub fn update_job(&self, id: i64, job: UpdateJobRequest) {
+    pub fn update_job(&self, id: String, job: UpdateJobRequest) {
         let mut jobs = self.jobs;
         let mut loading = self.loading;
         let mut error = self.error;
+        let id_clone = id.clone();
 
         spawn(async move {
             *loading.write() = true;
@@ -129,7 +130,10 @@ impl JobsState {
             match JobsService::update_job(id, job).await {
                 Ok(updated_job) => {
                     let mut jobs_list = jobs.read().clone();
-                    if let Some(index) = jobs_list.iter().position(|j| j.id == Some(id)) {
+                    if let Some(index) = jobs_list
+                        .iter()
+                        .position(|j| j.id == Some(id_clone.clone()))
+                    {
                         jobs_list[index] = updated_job;
                     }
                     *jobs.write() = jobs_list;
@@ -145,10 +149,11 @@ impl JobsState {
     }
 
     /// Delete a job
-    pub fn delete_job(&self, id: i64) {
+    pub fn delete_job(&self, id: String) {
         let mut jobs = self.jobs;
         let mut loading = self.loading;
         let mut error = self.error;
+        let id_clone = id.clone();
 
         spawn(async move {
             *loading.write() = true;
@@ -157,7 +162,7 @@ impl JobsState {
             match JobsService::delete_job(id).await {
                 Ok(_) => {
                     let mut jobs_list = jobs.read().clone();
-                    jobs_list.retain(|j| j.id != Some(id));
+                    jobs_list.retain(|j| j.id != Some(id_clone.clone()));
                     *jobs.write() = jobs_list;
                     *error.write() = None;
                 }

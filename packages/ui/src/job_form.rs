@@ -51,7 +51,7 @@ pub fn JobForm(open: Signal<bool>, job: Option<Job>) -> Element {
     });
 
     let is_editing = job.is_some();
-    let job_id = job.as_ref().and_then(|j| j.id);
+    let job_id_opt = job.as_ref().and_then(|j| j.id.clone());
 
     let mut open_option = use_signal(|| Some(*open.read()));
     use_effect(move || {
@@ -89,7 +89,7 @@ pub fn JobForm(open: Signal<bool>, job: Option<Job>) -> Element {
                             return;
                         }
 
-                        if let Some(id) = job_id {
+                        if let Some(id) = job_id_opt.clone() {
                             let update_req = UpdateJobRequest {
                                 title: title_val,
                                 company: company_val,

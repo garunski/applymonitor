@@ -16,12 +16,14 @@ pub struct GmailMessage {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct GmailListResponse {
     pub messages: Option<Vec<GmailMessageListItem>>,
     pub next_page_token: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct GmailMessageListItem {
     pub id: String,
     pub thread_id: String,

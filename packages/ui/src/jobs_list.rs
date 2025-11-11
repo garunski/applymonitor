@@ -23,7 +23,7 @@ pub fn JobsList() -> Element {
     #[allow(unused_mut)]
     let mut job_to_edit = use_signal(|| None::<Job>);
     let mut show_delete_dialog = use_signal(|| Some(false));
-    let mut job_to_delete = use_signal(|| None::<i64>);
+    let mut job_to_delete = use_signal(|| None::<String>);
 
     // Fetch jobs on mount
     use_effect(move || {
@@ -187,11 +187,11 @@ pub fn JobsList() -> Element {
                                                 index: use_signal(|| 1usize),
                                                 value: "delete".to_string(),
                                                 on_select: {
-                                                    let job_id = job.id;
+                                                    let job_id = job.id.clone();
                                                     let mut show_delete = show_delete_dialog;
                                                     let mut job_delete = job_to_delete;
                                                     move |_| {
-                                                        if let Some(id) = job_id {
+                                                        if let Some(id) = job_id.clone() {
                                                             *job_delete.write() = Some(id);
                                                             *show_delete.write() = Some(true);
                                                         }
@@ -238,7 +238,7 @@ pub fn JobsList() -> Element {
                         }
                         AlertDialogAction {
                             on_click: move |_| {
-                                let id_opt = *job_to_delete.read();
+                                let id_opt = job_to_delete.read().clone();
                                 if let Some(id) = id_opt {
                                     jobs_state.delete_job(id);
                                     *show_delete_dialog.write() = Some(false);
