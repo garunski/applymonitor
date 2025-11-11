@@ -57,6 +57,12 @@
 .dropdown-menu-content[class*="right-0"] {
   left: auto;
   right: 0;
+  transform-origin: top right;
+}
+
+.dropdown-menu-content[class*="left-0"] {
+  left: 0;
+  right: auto;
 }
 
 .dropdown-menu-content[data-state="closed"] {

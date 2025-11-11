@@ -34,7 +34,7 @@ pub fn Dashboard() -> Element {
                 class: "flex justify-center",
                 Link {
                     to: Route::Jobs {},
-                    class: "text-sm font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300",
+                    class: "text-sm font-medium text-brand-600 hover:text-brand-500 dark:text-brand-400 dark:hover:text-brand-300",
                     "View all jobs →"
                 }
             }

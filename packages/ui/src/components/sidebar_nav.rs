@@ -28,9 +28,9 @@ pub fn SidebarNavItem(props: SidebarNavItemProps) -> Element {
     let active = props.active.unwrap_or(false);
     let base_class = "group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold";
     let active_class = if active {
-        "bg-gray-50 dark:bg-gray-800 text-blue-600 dark:text-blue-400"
+        "bg-gray-50 dark:bg-gray-800 text-brand-600 dark:text-brand-400"
     } else {
-        "text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-800"
+        "text-gray-700 dark:text-gray-300 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-gray-50 dark:hover:bg-gray-800"
     };
 
     rsx! {

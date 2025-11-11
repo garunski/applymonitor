@@ -1,9 +1,21 @@
 version: '3'
 
 tasks:
+  logos:
+    desc: Generate logos from SVG for all platforms
+    dir: "packages/tailwind"
+    cmds:
+      - |
+        if [ ! -d "node_modules" ]; then
+          echo "Installing Tailwind dependencies..."
+          npm install
+        fi
+      - npm run generate:logos
+
   tailwind:
     desc: Build Tailwind CSS
     dir: "packages/tailwind"
+    deps: [logos]
     cmds:
       - |
         if [ ! -d "node_modules" ]; then

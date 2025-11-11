@@ -2,6 +2,8 @@ use crate::components::button::{Button, ButtonVariant};
 use crate::state::auth_state::use_auth;
 use dioxus::prelude::*;
 
+const LOGO_SVG: Asset = asset!("/assets/logo.svg");
+
 /// Login page component following Catalyst Tailwind UI design
 #[component]
 pub fn LoginPage() -> Element {
@@ -14,30 +16,41 @@ pub fn LoginPage() -> Element {
 
     rsx! {
         div {
-            class: "flex min-h-full flex-col justify-center py-6 sm:px-6 lg:px-8",
+            class: "min-h-screen bg-gradient-to-br from-slate-50 via-brand-50 to-brand-100 dark:from-gray-950 dark:via-gray-900 dark:to-brand-900 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8",
             div {
-                class: "sm:mx-auto sm:w-full sm:max-w-md",
+                class: "w-full max-w-md",
+                // Logo and Title
                 div {
-                    class: "flex justify-center",
+                    class: "flex flex-col items-center mb-8",
+                    img {
+                        src: LOGO_SVG,
+                        alt: "ApplyMonitor",
+                        class: "h-16 w-16 mb-4",
+                    }
                     h1 {
-                        class: "text-2xl font-semibold text-gray-900 dark:text-white",
-                        "ApplyMonitor"
+                        class: "text-3xl font-bold mb-2",
+                        span {
+                            class: "text-brand-500",
+                            "Apply"
+                        }
+                        " "
+                        span {
+                            class: "text-brand-900 dark:text-white",
+                            "Monitor"
+                        }
+                    }
+                    h2 {
+                        class: "text-xl font-semibold text-gray-700 dark:text-gray-300",
+                        if *show_register.read() {
+                            "Create your account"
+                        } else {
+                            "Sign in to your account"
+                        }
                     }
                 }
-                h2 {
-                    class: "mt-6 text-center text-3xl font-bold leading-9 tracking-tight text-gray-900 dark:text-white",
-                    if *show_register.read() {
-                        "Create your account"
-                    } else {
-                        "Sign in to your account"
-                    }
-                }
-            }
 
-            div {
-                class: "mt-6 sm:mx-auto sm:w-full sm:max-w-[480px]",
                 div {
-                    class: "bg-white dark:bg-gray-800 px-6 py-6 shadow sm:rounded-lg sm:px-12 border border-gray-200 dark:border-gray-700",
+                    class: "bg-white dark:bg-gray-800 px-6 py-8 shadow-xl sm:rounded-2xl sm:px-12 border border-gray-200 dark:border-gray-700",
                     if !*show_local.read() {
                         // OAuth providers
                         div {
@@ -124,7 +137,7 @@ pub fn LoginPage() -> Element {
                                             "Name"
                                         }
                                         input {
-                                            class: "mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500",
+                                            class: "mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white shadow-sm focus:border-brand-500 focus:outline-none focus:ring-brand-500",
                                             r#type: "text",
                                             value: name,
                                             oninput: move |e| *name.write() = e.value(),
@@ -137,7 +150,7 @@ pub fn LoginPage() -> Element {
                                             "Email"
                                         }
                                         input {
-                                            class: "mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500",
+                                            class: "mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white shadow-sm focus:border-brand-500 focus:outline-none focus:ring-brand-500",
                                             r#type: "email",
                                             value: email,
                                             oninput: move |e| *email.write() = e.value(),
@@ -150,7 +163,7 @@ pub fn LoginPage() -> Element {
                                             "Password"
                                         }
                                         input {
-                                            class: "mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500",
+                                            class: "mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white shadow-sm focus:border-brand-500 focus:outline-none focus:ring-brand-500",
                                             r#type: "password",
                                             value: password,
                                             oninput: move |e| *password.write() = e.value(),
@@ -171,7 +184,7 @@ pub fn LoginPage() -> Element {
                                         class: "text-center text-sm",
                                         "Already have an account? "
                                         button {
-                                            class: "font-semibold text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300",
+                                            class: "font-semibold text-brand-600 hover:text-brand-500 dark:text-brand-400 dark:hover:text-brand-300",
                                             onclick: move |_| {
                                                 *show_register.write() = false;
                                             },
@@ -189,7 +202,7 @@ pub fn LoginPage() -> Element {
                                             "Email"
                                         }
                                         input {
-                                            class: "mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500",
+                                            class: "mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white shadow-sm focus:border-brand-500 focus:outline-none focus:ring-brand-500",
                                             r#type: "email",
                                             value: email,
                                             oninput: move |e| *email.write() = e.value(),
@@ -202,7 +215,7 @@ pub fn LoginPage() -> Element {
                                             "Password"
                                         }
                                         input {
-                                            class: "mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500",
+                                            class: "mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white shadow-sm focus:border-brand-500 focus:outline-none focus:ring-brand-500",
                                             r#type: "password",
                                             value: password,
                                             oninput: move |e| *password.write() = e.value(),
@@ -215,7 +228,7 @@ pub fn LoginPage() -> Element {
                                             class: "text-sm",
                                             a {
                                                 href: "#",
-                                                class: "font-semibold text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300",
+                                                class: "font-semibold text-brand-600 hover:text-brand-500 dark:text-brand-400 dark:hover:text-brand-300",
                                                 "Forgot password?"
                                             }
                                         }
@@ -234,7 +247,7 @@ pub fn LoginPage() -> Element {
                                         class: "text-center text-sm",
                                         "Don't have an account? "
                                         button {
-                                            class: "font-semibold text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300",
+                                            class: "font-semibold text-brand-600 hover:text-brand-500 dark:text-brand-400 dark:hover:text-brand-300",
                                             onclick: move |_| {
                                                 *show_register.write() = true;
                                             },
@@ -260,11 +273,11 @@ pub fn LoginPage() -> Element {
 
                 if !*show_local.read() {
                     p {
-                        class: "mt-6 text-center text-sm/6 text-gray-500 dark:text-gray-400",
+                        class: "mt-6 text-center text-sm text-gray-500 dark:text-gray-400",
                         "Don't have an account? "
                         a {
                             href: "#",
-                            class: "font-semibold text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300",
+                            class: "font-semibold text-brand-600 hover:text-brand-500 dark:text-brand-400 dark:hover:text-brand-300",
                             "Sign up with any provider above"
                         }
                     }

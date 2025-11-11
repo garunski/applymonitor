@@ -37,7 +37,7 @@ pub fn UserProfile() -> Element {
             DropdownMenu {
                 DropdownMenuTrigger {
                     button {
-                        class: "flex items-center gap-2 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800",
+                        class: "flex items-center gap-2 rounded-full focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800",
                         if let Some(ref picture) = user.picture {
                             img {
                                 src: picture.clone(),
@@ -46,7 +46,7 @@ pub fn UserProfile() -> Element {
                             }
                         } else {
                             div {
-                                class: "h-8 w-8 rounded-full bg-blue-600 dark:bg-blue-500 flex items-center justify-center text-white text-sm font-medium",
+                                class: "h-8 w-8 rounded-full bg-brand-600 dark:bg-brand-500 flex items-center justify-center text-white text-sm font-medium",
                                 {initials}
                             }
                         }

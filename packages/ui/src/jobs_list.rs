@@ -5,13 +5,10 @@ use crate::components::alert_dialog::{
     AlertDialogDescription, AlertDialogRoot, AlertDialogTitle,
 };
 use crate::components::button::{Button, ButtonVariant};
-use crate::{
-    badge::Badge,
-    job_form::JobForm,
-    services::jobs_service::Job,
-    state::use_jobs,
-    table::{Table, TableBody, TableCell, TableHeader, TableHeaderCell, TableRow},
+use crate::components::dropdown_menu::{
+    DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 };
+use crate::{job_form::JobForm, services::jobs_service::Job, state::use_jobs};
 use dioxus::prelude::*;
 use std::rc::Rc;
 
@@ -91,44 +88,91 @@ pub fn JobsList() -> Element {
                 }
             }
 
-            // Jobs table
+            // Jobs list
             if !*jobs_state.loading.read() && jobs_state.error.read().is_none() {
                 div {
                     class: "mt-6 flow-root",
-                    Table {
-                        TableHeader {
-                            TableRow {
-                                TableHeaderCell { "Title" }
-                                TableHeaderCell { "Company" }
-                                TableHeaderCell { "Location" }
-                                TableHeaderCell { "Status" }
-                                TableHeaderCell { "Actions" }
-                            }
-                        }
-                        TableBody {
-                            for job in jobs_state.jobs.read().clone() {
-                                TableRow {
-                                    TableCell {
-                                        div {
-                                            class: "font-medium text-gray-900 dark:text-white",
-                                            {job.title.clone()}
+                    ul {
+                        role: "list",
+                        class: "divide-y divide-gray-100 dark:divide-white/5",
+                        for job in jobs_state.jobs.read().clone() {
+                            li {
+                                class: "flex justify-between gap-x-6 py-5",
+                                // Left section: Avatar, title, company
+                                div {
+                                    class: "flex min-w-0 gap-x-4",
+                                    // Company initial avatar
+                                    div {
+                                        class: "size-12 flex-none rounded-full bg-brand-100 dark:bg-brand-900 flex items-center justify-center dark:outline dark:outline-1 dark:-outline-offset-1 dark:outline-white/10",
+                                        span {
+                                            class: "text-brand-600 dark:text-brand-400 font-medium text-sm",
+                                            {job.company.chars().next().unwrap_or('?').to_uppercase().collect::<String>()}
                                         }
                                     }
-                                    TableCell {
-                                        {job.company.clone()}
+                                    // Text content
+                                    div {
+                                        class: "min-w-0 flex-auto",
+                                        p {
+                                            class: "text-sm/6 font-semibold text-gray-900 dark:text-white",
+                                            a {
+                                                href: "#",
+                                                class: "hover:underline",
+                                                {job.title.clone()}
+                                            }
+                                        }
+                                        p {
+                                            class: "mt-1 flex text-xs/5 text-gray-500 dark:text-gray-400",
+                                            span {
+                                                class: "truncate",
+                                                {job.company.clone()}
+                                                if let Some(ref loc) = job.location {
+                                                    " • {loc}"
+                                                }
+                                            }
+                                        }
                                     }
-                                    TableCell {
-                                        {job.location.clone().unwrap_or_default()}
+                                }
+                                // Right section: Status, dropdown menu
+                                div {
+                                    class: "flex shrink-0 items-center gap-x-6",
+                                    // Status badge (hidden on small screens)
+                                    div {
+                                        class: "hidden sm:flex sm:flex-col sm:items-end",
+                                        p {
+                                            class: "text-sm/6 text-gray-900 dark:text-white",
+                                            {job.status.chars().next().map(|c| c.to_uppercase().collect::<String>()).unwrap_or_default()}
+                                            {job.status.chars().skip(1).collect::<String>()}
+                                        }
                                     }
-                                    TableCell {
-                                        Badge { status: job.status.clone() }
-                                    }
-                                    TableCell {
-                                        div {
-                                            class: "flex space-x-2",
-                                            Button {
-                                                variant: ButtonVariant::Secondary,
-                                                onclick: {
+                                    // Dropdown menu
+                                    DropdownMenu {
+                                        DropdownMenuTrigger {
+                                            button {
+                                                class: "relative block text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white",
+                                                span {
+                                                    class: "absolute -inset-2.5",
+                                                }
+                                                span {
+                                                    class: "sr-only",
+                                                    "Open options"
+                                                }
+                                                svg {
+                                                    view_box: "0 0 20 20",
+                                                    fill: "currentColor",
+                                                    "aria-hidden": "true",
+                                                    class: "size-5",
+                                                    path {
+                                                        d: "M10 3a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM10 8.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM11.5 15.5a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0Z",
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        DropdownMenuContent {
+                                            class: "right-0 w-32",
+                                            DropdownMenuItem::<String> {
+                                                index: use_signal(|| 0usize),
+                                                value: "edit".to_string(),
+                                                on_select: {
                                                     let job_rc = Rc::new(job.clone());
                                                     let mut show_edit = show_edit_dialog;
                                                     let mut job_edit = job_to_edit;
@@ -139,9 +183,10 @@ pub fn JobsList() -> Element {
                                                 },
                                                 "Edit"
                                             }
-                                            Button {
-                                                variant: ButtonVariant::Destructive,
-                                                onclick: {
+                                            DropdownMenuItem::<String> {
+                                                index: use_signal(|| 1usize),
+                                                value: "delete".to_string(),
+                                                on_select: {
                                                     let job_id = job.id;
                                                     let mut show_delete = show_delete_dialog;
                                                     let mut job_delete = job_to_delete;

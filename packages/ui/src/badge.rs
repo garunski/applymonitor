@@ -7,8 +7,8 @@ use dioxus::prelude::*;
 pub fn Badge(status: String) -> Element {
     let (bg_color, text_color) = match status.as_str() {
         "applied" => (
-            "bg-blue-100 dark:bg-blue-900",
-            "text-blue-800 dark:text-blue-200",
+            "bg-brand-100 dark:bg-brand-900",
+            "text-brand-800 dark:text-brand-200",
         ),
         "interviewing" => (
             "bg-yellow-100 dark:bg-yellow-900",

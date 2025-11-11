@@ -36,7 +36,7 @@ pub fn Blog(id: i32) -> Element {
                     class: "flex gap-4",
                     Link {
                         to: Route::Blog { id: id - 1 },
-                        class: "text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300",
+                        class: "text-brand-600 hover:text-brand-500 dark:text-brand-400 dark:hover:text-brand-300",
                         "Previous"
                     }
                     span {
@@ -45,7 +45,7 @@ pub fn Blog(id: i32) -> Element {
                     }
                     Link {
                         to: Route::Blog { id: id + 1 },
-                        class: "text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300",
+                        class: "text-brand-600 hover:text-brand-500 dark:text-brand-400 dark:hover:text-brand-300",
                         "Next"
                     }
                 }

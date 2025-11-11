@@ -6,7 +6,8 @@ use crate::components::dropdown_menu::{
 use crate::components::sidebar_nav::SidebarNav;
 use crate::state::use_auth;
 use dioxus::prelude::*;
-use dioxus_free_icons::{icons::bs_icons::BsChevronUp, Icon};
+
+const LOGO_SVG: Asset = asset!("/assets/logo.svg");
 
 /// Sidebar layout props
 #[derive(Props, PartialEq, Clone)]
@@ -27,15 +28,28 @@ pub fn SidebarLayout(props: SidebarLayoutProps) -> Element {
             class: "flex h-screen bg-gray-50 dark:bg-gray-950",
             // Sidebar
             div {
-                class: "hidden lg:flex lg:flex-col lg:w-72 lg:fixed lg:inset-y-0 lg:z-50",
+                class: "hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 lg:z-50",
                 div {
                     class: "flex grow flex-col gap-y-5 overflow-y-auto bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 px-6 py-6",
                     // Top section: Logo
                     div {
-                        class: "flex h-16 shrink-0 items-center",
+                        class: "flex h-16 shrink-0 items-center gap-3",
+                        img {
+                            src: LOGO_SVG,
+                            alt: "ApplyMonitor",
+                            class: "h-10 w-10",
+                        }
                         h1 {
-                            class: "text-xl font-semibold text-gray-900 dark:text-white",
-                            "ApplyMonitor"
+                            class: "text-xl font-semibold",
+                            span {
+                                class: "text-brand-500",
+                                "Apply"
+                            }
+                            " "
+                            span {
+                                class: "text-brand-900 dark:text-white",
+                                "Monitor"
+                            }
                         }
                     }
 
@@ -62,7 +76,7 @@ pub fn SidebarLayout(props: SidebarLayoutProps) -> Element {
                                             }
                                         } else {
                                             div {
-                                                class: "h-8 w-8 rounded-full bg-blue-600 dark:bg-blue-500 flex items-center justify-center text-white text-sm font-medium",
+                                                class: "h-8 w-8 rounded-full bg-brand-600 dark:bg-brand-500 flex items-center justify-center text-white text-sm font-medium",
                                                 {user.name.as_ref().and_then(|n| n.chars().next()).unwrap_or('U').to_uppercase().collect::<String>()}
                                             }
                                         }
@@ -78,13 +92,6 @@ pub fn SidebarLayout(props: SidebarLayoutProps) -> Element {
                                                     {email.clone()}
                                                 }
                                             }
-                                        }
-                                        Icon {
-                                            class: "h-5 w-5 text-gray-400 shrink-0 ml-auto",
-                                            width: 20,
-                                            height: 20,
-                                            fill: "currentColor",
-                                            icon: BsChevronUp,
                                         }
                                     }
                                 }
@@ -103,7 +110,7 @@ pub fn SidebarLayout(props: SidebarLayoutProps) -> Element {
                                                 }
                                             } else {
                                                 div {
-                                                    class: "h-10 w-10 rounded-full bg-blue-600 dark:bg-blue-500 flex items-center justify-center text-white text-sm font-medium",
+                                                    class: "h-10 w-10 rounded-full bg-brand-600 dark:bg-brand-500 flex items-center justify-center text-white text-sm font-medium",
                                                     {user.name.as_ref().and_then(|n| n.chars().next()).unwrap_or('U').to_uppercase().collect::<String>()}
                                                 }
                                             }
@@ -149,7 +156,7 @@ pub fn SidebarLayout(props: SidebarLayoutProps) -> Element {
 
             // Main content area
             div {
-                class: "lg:pl-72 flex flex-col flex-1",
+                class: "lg:pl-64 flex flex-col flex-1",
                 main {
                     class: "py-6",
                     {props.children}

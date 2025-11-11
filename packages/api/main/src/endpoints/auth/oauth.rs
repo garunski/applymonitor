@@ -241,6 +241,7 @@ pub async fn callback(req: Request, ctx: RouteContext<()>) -> Result<Response> {
             .var("FRONTEND_URL")
             .map(|v| v.to_string())
             .unwrap_or_else(|_| "https://applymonitor.com".to_string())
+            + "/dashboard"
     };
 
     let cookie_name = ctx

@@ -107,7 +107,7 @@ fn WebSidebar() -> Element {
                 SidebarNav {
                     Link {
                             to: Route::Dashboard {},
-                            class: "group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-800",
+                            class: "group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold text-gray-700 dark:text-gray-300 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-gray-50 dark:hover:bg-gray-800",
                             Icon {
                                 class: "h-6 w-6 shrink-0",
                                 width: 24,
@@ -119,7 +119,7 @@ fn WebSidebar() -> Element {
                         }
                         Link {
                             to: Route::Jobs {},
-                            class: "group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-800",
+                            class: "group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold text-gray-700 dark:text-gray-300 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-gray-50 dark:hover:bg-gray-800",
                             Icon {
                                 class: "h-6 w-6 shrink-0",
                                 width: 24,
@@ -131,7 +131,7 @@ fn WebSidebar() -> Element {
                         }
                         Link {
                             to: Route::Accounts {},
-                            class: "group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-800",
+                            class: "group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold text-gray-700 dark:text-gray-300 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-gray-50 dark:hover:bg-gray-800",
                             Icon {
                                 class: "h-6 w-6 shrink-0",
                                 width: 24,

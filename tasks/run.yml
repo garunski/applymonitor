@@ -10,6 +10,7 @@ tasks:
           echo "Installing Tailwind dependencies..."
           npm install
         fi
+      - npm run generate:logos
       - npm run dev
 
   tailwind:build:
