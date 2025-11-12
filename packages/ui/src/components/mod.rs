@@ -4,6 +4,7 @@ pub mod alert_dialog;
 pub mod button;
 pub mod dialog;
 pub mod dropdown_menu;
+pub mod email_contact;
 pub mod form;
 pub mod input;
 pub mod label;

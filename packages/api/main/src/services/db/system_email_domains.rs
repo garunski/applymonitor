@@ -45,9 +45,13 @@ pub async fn get_all_domains(db: &D1Database) -> Result<Vec<SystemEmailDomain>> 
 
 /// Check if an email address matches any system email domain pattern
 pub async fn is_system_email(db: &D1Database, email: &str) -> Result<bool> {
-    // Extract domain from email
-    let domain = if let Some(at_pos) = email.find('@') {
-        &email[at_pos + 1..]
+    // URL decode the email if needed (handles %40 -> @)
+    // Simple approach: replace common URL-encoded characters
+    let decoded_email = email.replace("%40", "@").replace("%2E", ".");
+
+    // Extract local part (before @) and domain (after @)
+    let (local_part, domain) = if let Some(at_pos) = decoded_email.find('@') {
+        (&decoded_email[..at_pos], &decoded_email[at_pos + 1..])
     } else {
         return Ok(false);
     };
@@ -55,7 +59,12 @@ pub async fn is_system_email(db: &D1Database, email: &str) -> Result<bool> {
     let domains = get_all_domains(db).await?;
 
     for system_domain in domains {
-        if matches_pattern(&system_domain.domain_pattern, domain) {
+        // Check if pattern matches domain (e.g., "*.greenhouse.io")
+        if matches_pattern_impl(&system_domain.domain_pattern, domain) {
+            return Ok(true);
+        }
+        // Check if pattern matches local part (e.g., "noreply.*" matches "noreply@anything.com")
+        if matches_pattern_impl(&system_domain.domain_pattern, local_part) {
             return Ok(true);
         }
     }
@@ -64,7 +73,13 @@ pub async fn is_system_email(db: &D1Database, email: &str) -> Result<bool> {
 }
 
 /// Check if a domain matches a pattern (supports wildcard *)
-fn matches_pattern(pattern: &str, domain: &str) -> bool {
+/// Exposed for testing
+pub fn matches_pattern(pattern: &str, domain: &str) -> bool {
+    matches_pattern_impl(pattern, domain)
+}
+
+/// Internal implementation of pattern matching
+fn matches_pattern_impl(pattern: &str, domain: &str) -> bool {
     if pattern == domain {
         return true;
     }
@@ -78,11 +93,23 @@ fn matches_pattern(pattern: &str, domain: &str) -> bool {
             let suffix = pattern_parts[1];
 
             if prefix.is_empty() {
-                // Pattern: "*suffix"
+                // Pattern: "*suffix" (e.g., "*.greenhouse.io")
+                // Match if domain ends with suffix OR if domain equals suffix without leading dot
+                if suffix.starts_with('.') {
+                    let suffix_without_dot = &suffix[1..];
+                    return domain.ends_with(suffix) || domain == suffix_without_dot;
+                }
                 return domain.ends_with(suffix);
             } else if suffix.is_empty() {
-                // Pattern: "prefix*"
-                return domain.starts_with(prefix);
+                // Pattern: "prefix*" (e.g., "noreply.*" splits to ["noreply.", ""])
+                // Remove trailing dot from prefix if present, then check if it starts with prefix
+                let prefix_clean = prefix.strip_suffix('.').unwrap_or(prefix);
+                return domain.starts_with(prefix_clean);
+            } else if suffix == "." {
+                // Pattern: "prefix.*" means "prefix" followed by anything (including nothing)
+                // Remove trailing dot from prefix if present, then check if it starts with prefix
+                let prefix_clean = prefix.strip_suffix('.').unwrap_or(prefix);
+                return domain.starts_with(prefix_clean);
             } else {
                 // Pattern: "prefix*suffix"
                 return domain.starts_with(prefix) && domain.ends_with(suffix);

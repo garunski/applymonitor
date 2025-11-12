@@ -2,7 +2,7 @@ use worker::*;
 
 mod common;
 mod endpoints;
-mod services;
+pub mod services;
 mod types;
 
 use common::auth::require_auth;
@@ -36,29 +36,11 @@ async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
 
     // Check authentication for protected routes (but skip OPTIONS requests)
     if !is_public && !is_options {
-        match require_auth(&req, &env).await {
-            Ok(user_id) => {
-                console_log!(
-                    "[Main] Auth check passed for route: {} {}, user_id: {}",
-                    method,
-                    path,
-                    user_id
-                );
-                // User is authenticated, continue
-            }
-            Err(e) => {
-                console_log!(
-                    "[Main] Auth check FAILED for route: {} {}, error: {}",
-                    method,
-                    path,
-                    e
-                );
-                // Return 401 for unauthorized requests (CORS will be applied globally)
-                let error_message = format!("Unauthorized: {}", e);
-                console_log!("[Main] Returning 401 error: {}", error_message);
-                let error_response = Response::error(error_message, 401)?;
-                return apply_cors(error_response, &cors);
-            }
+        if let Err(e) = require_auth(&req, &env).await {
+            // Return 401 for unauthorized requests (CORS will be applied globally)
+            let error_message = format!("Unauthorized: {}", e);
+            let error_response = Response::error(error_message, 401)?;
+            return apply_cors(error_response, &cors);
         }
     }
 
@@ -166,6 +148,9 @@ async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
             email_contacts::handler(req, ctx).await
         })
         .put_async("/email-contacts/:email", |req, ctx| async move {
+            email_contacts::handler(req, ctx).await
+        })
+        .post_async("/email-contacts/:email", |req, ctx| async move {
             email_contacts::handler(req, ctx).await
         })
         .options("/email-contacts", |_, _| Response::ok(""))

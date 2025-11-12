@@ -293,3 +293,26 @@ Common occurrence: Option transformations that always produce a value.
 Pattern: Cloudflare D1 does not support bigint types for IDs or query parameters.
 Lesson: Always use TEXT (UUID/GUID) for primary keys, never INTEGER or BIGINT. Use i32 (not i64) for LIMIT/OFFSET parameters in SQL queries.
 Common occurrence: Database migrations, SQL query parameters, ID generation.
+
+10. D1 Optional/NULL values in bind parameters
+Pattern: D1 does not accept `undefined` or `null` values in bind parameters. Binding `Option<&str>` with `None` will cause `D1_TYPE_ERROR: Type 'undefined' not supported`.
+Lesson: For optional fields, use separate SQL statements with `NULL` in the SQL itself, and only bind parameters that have values (Some). Never bind `None` values directly.
+Example:
+```rust
+// ❌ BAD - Can't bind None/undefined
+.bind(&[name.into(), linkedin.into(), website.into()])  // If any are None, this fails
+
+// ✅ GOOD - NULL in SQL, only bind Some values
+match (name, linkedin, website) {
+    (Some(n), Some(l), Some(w)) => {
+        "UPDATE ... SET name = ?, linkedin = ?, website = ?"
+        .bind(&[n.into(), l.into(), w.into()])
+    }
+    (Some(n), Some(l), None) => {
+        "UPDATE ... SET name = ?, linkedin = ?, website = NULL"
+        .bind(&[n.into(), l.into()])  // Only bind the Some values
+    }
+    // ... handle all combinations
+}
+```
+Common occurrence: UPDATE/INSERT statements with optional fields (name, linkedin, website, description, location, etc.).

@@ -192,6 +192,8 @@ pub struct EmailContact {
     pub linkedin: Option<String>,
     pub website: Option<String>,
     pub is_system: bool,
+    #[serde(default)]
+    pub is_system_detected: bool,
 }
 
 /// Job details response with related data

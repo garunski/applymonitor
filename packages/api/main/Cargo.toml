@@ -4,7 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [lib]
-crate-type = ["cdylib"]
+name = "api_main"
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 worker = { version = "0.6.6", features = ["d1"] }

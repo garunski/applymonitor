@@ -1,12 +1,12 @@
 //! Email contact slideout component for displaying and editing contact details
 
 use crate::components::button::{Button, ButtonVariant};
+use crate::components::email_contact::{ContactView, SlideoutHeader, SystemEmailBanner};
 use crate::components::input::Input;
 use crate::components::label::Label;
+use crate::hooks::use_system_email_detection;
 use crate::state::use_email_contacts;
 use dioxus::prelude::*;
-use dioxus_free_icons::icons::bs_icons::BsX;
-use dioxus_free_icons::Icon;
 
 /// Email contact slideout component
 #[component]
@@ -17,28 +17,35 @@ pub fn EmailContactSlideout() -> Element {
     let mut website = use_signal(String::new);
     let mut is_editing = use_signal(|| false);
     let saving = use_signal(|| false);
+    let converting = use_signal(|| false);
 
-    let selected_contact = contacts_state.selected_contact.read().clone();
+    let selected_contact_signal = contacts_state.selected_contact;
+
+    // Use system email detection hook
+    let detection = use_system_email_detection(selected_contact_signal);
 
     // Update form fields when contact changes
     use_effect({
-        let contact = selected_contact.clone();
+        let contacts_state_effect = contacts_state;
         let mut name_signal = name;
         let mut linkedin_signal = linkedin;
         let mut website_signal = website;
         let mut editing = is_editing;
+        let mut converting_signal = converting;
         move || {
+            let contact = contacts_state_effect.selected_contact.read().clone();
             if let Some(ref c) = contact {
                 *name_signal.write() = c.name.clone().unwrap_or_default();
                 *linkedin_signal.write() = c.linkedin.clone().unwrap_or_default();
                 *website_signal.write() = c.website.clone().unwrap_or_default();
                 *editing.write() = false;
+                *converting_signal.write() = false;
             }
         }
     });
 
-    if let Some(contact) = selected_contact {
-        let is_system = contact.is_system;
+    let current_contact = selected_contact_signal.read().clone();
+    if let Some(contact) = current_contact {
         let display_name = contact
             .name
             .clone()
@@ -58,55 +65,25 @@ pub fn EmailContactSlideout() -> Element {
                 class: "fixed right-0 top-0 bottom-0 z-50 w-full sm:w-[500px] bg-white dark:bg-gray-900 shadow-xl transform transition-transform duration-300 ease-in-out overflow-y-auto",
                 div {
                     class: "flex flex-col h-full",
-                    // Header
-                    div {
-                        class: "sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-6 py-4",
-                        div {
-                            class: "flex items-start justify-between mb-4",
-                            div {
-                                class: "flex-1 min-w-0",
-                                h2 {
-                                    class: "text-lg font-semibold text-gray-900 dark:text-white pr-4 truncate",
-                                    {display_name}
-                                }
-                                p {
-                                    class: "text-sm text-gray-500 dark:text-gray-400 mt-1 truncate",
-                                    {contact.email.clone()}
-                                }
-                            }
-                            Button {
-                                variant: ButtonVariant::Ghost,
-                                class: "shrink-0",
-                                onclick: move |_| {
-                                    contacts_state.clear_selected();
-                                },
-                                Icon {
-                                    class: "w-5 h-5",
-                                    width: 20,
-                                    height: 20,
-                                    fill: "currentColor",
-                                    icon: BsX,
-                                }
-                            }
-                        }
-
-                        // System email badge
-                        if is_system {
-                            div {
-                                class: "mb-4",
-                                span {
-                                    class: "inline-flex items-center rounded-md bg-indigo-50 dark:bg-indigo-900/30 px-3 py-1 text-sm font-medium text-indigo-700 dark:text-indigo-300 ring-1 ring-inset ring-indigo-700/10 dark:ring-indigo-300/20",
-                                    "System Email"
-                                }
-                            }
-                        }
+                    SlideoutHeader {
+                        contact: contact.clone(),
+                        display_name: display_name.clone(),
+                        on_close: move |_| {
+                            contacts_state.clear_selected();
+                        },
                     }
 
-                    // Content
+                    SystemEmailBanner {
+                        contact: contact.clone(),
+                        checking: *detection.checking.read(),
+                        is_system_detected: *detection.is_system_detected.read(),
+                        converting,
+                    }
+
+                    // Content - view or edit mode
                     div {
-                        class: "flex-1 px-6 py-4 space-y-6",
+                        class: "flex-1 px-6 py-4 space-y-4",
                         if is_editing() {
-                            // Edit form
                             div {
                                 class: "space-y-4",
                                 div {
@@ -152,65 +129,49 @@ pub fn EmailContactSlideout() -> Element {
                                     class: "flex justify-end gap-3 pt-4",
                                     Button {
                                         variant: ButtonVariant::Secondary,
-                                        onclick: {
-                                            let mut editing = is_editing;
-                                            let contact_clone = contact.clone();
-                                            let mut name_signal = name;
-                                            let mut linkedin_signal = linkedin;
-                                            let mut website_signal = website;
-                                            move |_| {
-                                                *editing.write() = false;
-                                                // Reset to original values
-                                                *name_signal.write() = contact_clone.name.clone().unwrap_or_default();
-                                                *linkedin_signal.write() = contact_clone.linkedin.clone().unwrap_or_default();
-                                                *website_signal.write() = contact_clone.website.clone().unwrap_or_default();
-                                            }
+                                        onclick: move |_| {
+                                            *is_editing.write() = false;
+                                            // Reset to original values
+                                            *name.write() = contact.name.clone().unwrap_or_default();
+                                            *linkedin.write() = contact.linkedin.clone().unwrap_or_default();
+                                            *website.write() = contact.website.clone().unwrap_or_default();
                                         },
                                         "Cancel"
                                     }
                                     Button {
                                         variant: ButtonVariant::Primary,
-                                        onclick: {
+                                        onclick: move |_| {
+                                            let name_opt = if name().trim().is_empty() {
+                                                None
+                                            } else {
+                                                Some(name().trim().to_string())
+                                            };
+                                            let linkedin_opt = if linkedin().trim().is_empty() {
+                                                None
+                                            } else {
+                                                Some(linkedin().trim().to_string())
+                                            };
+                                            let website_opt = if website().trim().is_empty() {
+                                                None
+                                            } else {
+                                                Some(website().trim().to_string())
+                                            };
+
                                             let email = contact.email.clone();
-                                            let name_value = name;
-                                            let linkedin_value = linkedin;
-                                            let website_value = website;
-                                            let saving_signal = saving;
-                                            let editing_signal = is_editing;
                                             let contacts_state_clone = contacts_state;
-                                            move |_| {
-                                                let name_opt = if name_value().trim().is_empty() {
-                                                    None
-                                                } else {
-                                                    Some(name_value().trim().to_string())
-                                                };
-                                                let linkedin_opt = if linkedin_value().trim().is_empty() {
-                                                    None
-                                                } else {
-                                                    Some(linkedin_value().trim().to_string())
-                                                };
-                                                let website_opt = if website_value().trim().is_empty() {
-                                                    None
-                                                } else {
-                                                    Some(website_value().trim().to_string())
-                                                };
-
-                                                let email_clone = email.clone();
-                                                let mut saving_clone = saving_signal;
-                                                let mut editing_clone = editing_signal;
-
-                                                spawn(async move {
-                                                    *saving_clone.write() = true;
-                                                    contacts_state_clone.update_contact(
-                                                        email_clone,
-                                                        name_opt,
-                                                        linkedin_opt,
-                                                        website_opt,
-                                                    );
-                                                    *saving_clone.write() = false;
-                                                    *editing_clone.write() = false;
-                                                });
-                                            }
+                                            let mut saving_signal = saving;
+                                            let mut editing_signal = is_editing;
+                                            spawn(async move {
+                                                *saving_signal.write() = true;
+                                                contacts_state_clone.update_contact(
+                                                    email,
+                                                    name_opt,
+                                                    linkedin_opt,
+                                                    website_opt,
+                                                );
+                                                *saving_signal.write() = false;
+                                                *editing_signal.write() = false;
+                                            });
                                         },
                                         disabled: saving(),
                                         if saving() {
@@ -222,74 +183,9 @@ pub fn EmailContactSlideout() -> Element {
                                 }
                             }
                         } else {
-                            // View mode
-                            div {
-                                class: "space-y-4",
-                                if let Some(ref n) = contact.name {
-                                    if !n.is_empty() {
-                                        div {
-                                            class: "space-y-1",
-                                            p {
-                                                class: "text-xs font-medium text-gray-500 dark:text-gray-400 uppercase",
-                                                "Name"
-                                            }
-                                            p {
-                                                class: "text-sm text-gray-900 dark:text-white",
-                                                {n.clone()}
-                                            }
-                                        }
-                                    }
-                                }
-                                if let Some(ref l) = contact.linkedin {
-                                    if !l.is_empty() {
-                                        div {
-                                            class: "space-y-1",
-                                            p {
-                                                class: "text-xs font-medium text-gray-500 dark:text-gray-400 uppercase",
-                                                "LinkedIn"
-                                            }
-                                            a {
-                                                href: l.clone(),
-                                                target: "_blank",
-                                                rel: "noopener noreferrer",
-                                                class: "text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300",
-                                                {l.clone()}
-                                            }
-                                        }
-                                    }
-                                }
-                                if let Some(ref w) = contact.website {
-                                    if !w.is_empty() {
-                                        div {
-                                            class: "space-y-1",
-                                            p {
-                                                class: "text-xs font-medium text-gray-500 dark:text-gray-400 uppercase",
-                                                "Website"
-                                            }
-                                            a {
-                                                href: w.clone(),
-                                                target: "_blank",
-                                                rel: "noopener noreferrer",
-                                                class: "text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300",
-                                                {w.clone()}
-                                            }
-                                        }
-                                    }
-                                }
-                                if contact.name.is_none() && contact.linkedin.is_none() && contact.website.is_none() {
-                                    p {
-                                        class: "text-sm text-gray-400 dark:text-gray-500 italic",
-                                        "No additional information available"
-                                    }
-                                }
-                                div {
-                                    class: "pt-4",
-                                    Button {
-                                        variant: ButtonVariant::Primary,
-                                        onclick: move |_| *is_editing.write() = true,
-                                        "Edit"
-                                    }
-                                }
+                            ContactView {
+                                contact: contact.clone(),
+                                on_edit: move |_| *is_editing.write() = true,
                             }
                         }
                     }

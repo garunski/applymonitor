@@ -94,4 +94,55 @@ impl EmailContactsService {
             Err(ServiceError::Server(status, text))
         }
     }
+
+    /// Check if an email is detected as a system email
+    pub async fn check_system_email(email: &str) -> Result<bool, ServiceError> {
+        let encoded = email.replace('@', "%40");
+        let url = format!(
+            "{}/email-contacts/{}?check_system=true",
+            Self::get_api_base_url(),
+            encoded
+        );
+
+        let response = http_client::get(&url).await?;
+        let status = response.status();
+
+        if status == 200 {
+            #[derive(serde::Deserialize)]
+            struct CheckResponse {
+                is_system_detected: bool,
+            }
+            let check_response: CheckResponse = http_client::json(response).await?;
+            Ok(check_response.is_system_detected)
+        } else if status == 401 {
+            Err(ServiceError::Unauthorized)
+        } else {
+            let text = http_client::text(response).await.unwrap_or_default();
+            Err(ServiceError::Server(status, text))
+        }
+    }
+
+    /// Convert a system email contact to a user-saved contact
+    pub async fn convert_to_user_contact(email: &str) -> Result<EmailContact, ServiceError> {
+        let encoded = email.replace('@', "%40");
+        let url = format!(
+            "{}/email-contacts/{}?action=convert-to-user",
+            Self::get_api_base_url(),
+            encoded
+        );
+
+        let response = http_client::post(&url, None).await?;
+        let status = response.status();
+
+        if status == 200 {
+            http_client::json::<EmailContact>(response).await
+        } else if status == 404 {
+            Err(ServiceError::NotFound)
+        } else if status == 401 {
+            Err(ServiceError::Unauthorized)
+        } else {
+            let text = http_client::text(response).await.unwrap_or_default();
+            Err(ServiceError::Server(status, text))
+        }
+    }
 }

@@ -1,6 +1,9 @@
 use crate::common::auth::require_auth;
 use crate::common::db::get_d1;
-use crate::services::db::email_contacts::{get_contact, get_contacts_for_job, update_contact};
+use crate::services::db::email_contacts::{
+    convert_to_user_contact, get_contact, get_contacts_for_job, update_contact,
+};
+use crate::services::db::system_email_domains::is_system_email;
 use serde::{Deserialize, Serialize};
 use worker::*;
 
@@ -29,19 +32,20 @@ pub async fn handler(mut req: Request, ctx: RouteContext<()>) -> Result<Response
             if let Some(job_id) = query_params.get("job_id") {
                 match get_contacts_for_job(&db, job_id, &user_id).await {
                     Ok(contacts) => {
-                        let contacts_json: Vec<serde_json::Value> = contacts
-                            .iter()
-                            .map(|c| {
-                                serde_json::json!({
+                        let mut contacts_json: Vec<serde_json::Value> = Vec::new();
+                        for c in contacts {
+                            // Check if it's detected as system email
+                            let detected = is_system_email(&db, &c.email).await.unwrap_or(false);
+                            contacts_json.push(serde_json::json!({
                                     "email": c.email,
                                     "user_id": c.user_id,
                                     "name": c.name,
                                     "linkedin": c.linkedin,
                                     "website": c.website,
                                     "is_system": c.is_system,
-                                })
-                            })
-                            .collect();
+                                "is_system_detected": detected,
+                            }));
+                        }
                         return Response::from_json(&contacts_json);
                     }
                     Err(e) => {
@@ -51,9 +55,32 @@ pub async fn handler(mut req: Request, ctx: RouteContext<()>) -> Result<Response
             }
 
             // GET /email-contacts/{email} - Get specific contact
+            // GET /email-contacts/{email}?check_system=true - Check if email is detected as system email
             if let Some(email) = ctx.param("email") {
+                // Check if this is a system email check request
+                if query_params.get("check_system").map(|s| s.as_ref()) == Some("true") {
+                    match is_system_email(&db, email).await {
+                        Ok(detected) => {
+                            let response_json = serde_json::json!({
+                                "email": email,
+                                "is_system_detected": detected,
+                            });
+                            return Response::from_json(&response_json);
+                        }
+                        Err(e) => {
+                            return Response::error(
+                                format!("Failed to check system email: {}", e),
+                                500,
+                            );
+                        }
+                    }
+                }
+
+                // Regular get contact
                 match get_contact(&db, email, &user_id).await {
                     Ok(Some(c)) => {
+                        // Also check if it's detected as system email
+                        let detected = is_system_email(&db, &c.email).await.unwrap_or(false);
                         let contact_json = serde_json::json!({
                             "email": c.email,
                             "user_id": c.user_id,
@@ -61,6 +88,7 @@ pub async fn handler(mut req: Request, ctx: RouteContext<()>) -> Result<Response
                             "linkedin": c.linkedin,
                             "website": c.website,
                             "is_system": c.is_system,
+                            "is_system_detected": detected,
                         });
                         return Response::from_json(&contact_json);
                     }
@@ -81,10 +109,12 @@ pub async fn handler(mut req: Request, ctx: RouteContext<()>) -> Result<Response
         Method::Put => {
             // PUT /email-contacts/{email} - Update contact
             if let Some(email) = ctx.param("email") {
+                // URL decode the email if needed (handles %40 -> @)
+                let decoded_email = email.replace("%40", "@").replace("%2E", ".");
                 let body = req.json::<UpdateContactRequest>().await?;
                 match update_contact(
                     &db,
-                    email,
+                    &decoded_email,
                     &user_id,
                     body.name.as_deref(),
                     body.linkedin.as_deref(),
@@ -100,6 +130,7 @@ pub async fn handler(mut req: Request, ctx: RouteContext<()>) -> Result<Response
                             "linkedin": contact.linkedin,
                             "website": contact.website,
                             "is_system": contact.is_system,
+                            "is_system_detected": false, // Will be recalculated on next fetch
                         });
                         return Response::from_json(&contact_json);
                     }
@@ -110,6 +141,35 @@ pub async fn handler(mut req: Request, ctx: RouteContext<()>) -> Result<Response
             }
 
             Response::error("Missing email path parameter", 400)
+        }
+        Method::Post => {
+            // POST /email-contacts/{email}?action=convert-to-user - Convert system email to user contact
+            if let Some(email) = ctx.param("email") {
+                if query_params.get("action").map(|s| s.as_ref()) == Some("convert-to-user") {
+                    match convert_to_user_contact(&db, email, &user_id).await {
+                        Ok(contact) => {
+                            let contact_json = serde_json::json!({
+                                "email": contact.email,
+                                "user_id": contact.user_id,
+                                "name": contact.name,
+                                "linkedin": contact.linkedin,
+                                "website": contact.website,
+                                "is_system": contact.is_system,
+                                "is_system_detected": false, // No longer detected, now saved as system contact
+                            });
+                            return Response::from_json(&contact_json);
+                        }
+                        Err(e) => {
+                            return Response::error(
+                                format!("Failed to convert contact: {}", e),
+                                500,
+                            );
+                        }
+                    }
+                }
+            }
+
+            Response::error("Missing email path parameter or invalid action", 400)
         }
         _ => Response::error("Method not allowed", 405),
     }

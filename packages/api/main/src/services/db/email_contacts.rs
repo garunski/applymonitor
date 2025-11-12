@@ -182,19 +182,109 @@ pub async fn update_contact(
     // Ensure contact exists first
     get_or_create_contact(db, email, user_id).await?;
 
-    // Update contact
-    db.prepare(
-        "UPDATE email_contacts SET name = ?, linkedin = ?, website = ?, updated_at = CURRENT_TIMESTAMP WHERE email = ? AND user_id = ?",
-    )
-    .bind(&[
-        name.into(),
-        linkedin.into(),
-        website.into(),
-        normalized_email.clone().into(),
-        user_id.into(),
-    ])?
-    .run()
-    .await?;
+    // Update contact - handle NULL values by using separate SQL statements
+    match (name, linkedin, website) {
+        (Some(n), Some(l), Some(w)) => {
+            db.prepare(
+                "UPDATE email_contacts SET name = ?, linkedin = ?, website = ?, updated_at = CURRENT_TIMESTAMP WHERE email = ? AND user_id = ?",
+            )
+            .bind(&[
+                n.into(),
+                l.into(),
+                w.into(),
+                normalized_email.clone().into(),
+                user_id.into(),
+            ])?
+            .run()
+            .await?;
+        }
+        (Some(n), Some(l), None) => {
+            db.prepare(
+                "UPDATE email_contacts SET name = ?, linkedin = ?, website = NULL, updated_at = CURRENT_TIMESTAMP WHERE email = ? AND user_id = ?",
+            )
+            .bind(&[
+                n.into(),
+                l.into(),
+                normalized_email.clone().into(),
+                user_id.into(),
+            ])?
+            .run()
+            .await?;
+        }
+        (Some(n), None, Some(w)) => {
+            db.prepare(
+                "UPDATE email_contacts SET name = ?, linkedin = NULL, website = ?, updated_at = CURRENT_TIMESTAMP WHERE email = ? AND user_id = ?",
+            )
+            .bind(&[
+                n.into(),
+                w.into(),
+                normalized_email.clone().into(),
+                user_id.into(),
+            ])?
+            .run()
+            .await?;
+        }
+        (Some(n), None, None) => {
+            db.prepare(
+                "UPDATE email_contacts SET name = ?, linkedin = NULL, website = NULL, updated_at = CURRENT_TIMESTAMP WHERE email = ? AND user_id = ?",
+            )
+            .bind(&[
+                n.into(),
+                normalized_email.clone().into(),
+                user_id.into(),
+            ])?
+            .run()
+            .await?;
+        }
+        (None, Some(l), Some(w)) => {
+            db.prepare(
+                "UPDATE email_contacts SET name = NULL, linkedin = ?, website = ?, updated_at = CURRENT_TIMESTAMP WHERE email = ? AND user_id = ?",
+            )
+            .bind(&[
+                l.into(),
+                w.into(),
+                normalized_email.clone().into(),
+                user_id.into(),
+            ])?
+            .run()
+            .await?;
+        }
+        (None, Some(l), None) => {
+            db.prepare(
+                "UPDATE email_contacts SET name = NULL, linkedin = ?, website = NULL, updated_at = CURRENT_TIMESTAMP WHERE email = ? AND user_id = ?",
+            )
+            .bind(&[
+                l.into(),
+                normalized_email.clone().into(),
+                user_id.into(),
+            ])?
+            .run()
+            .await?;
+        }
+        (None, None, Some(w)) => {
+            db.prepare(
+                "UPDATE email_contacts SET name = NULL, linkedin = NULL, website = ?, updated_at = CURRENT_TIMESTAMP WHERE email = ? AND user_id = ?",
+            )
+            .bind(&[
+                w.into(),
+                normalized_email.clone().into(),
+                user_id.into(),
+            ])?
+            .run()
+            .await?;
+        }
+        (None, None, None) => {
+            db.prepare(
+                "UPDATE email_contacts SET name = NULL, linkedin = NULL, website = NULL, updated_at = CURRENT_TIMESTAMP WHERE email = ? AND user_id = ?",
+            )
+            .bind(&[
+                normalized_email.clone().into(),
+                user_id.into(),
+            ])?
+            .run()
+            .await?;
+        }
+    }
 
     // Return updated contact
     get_contact(db, &normalized_email, user_id)
@@ -252,6 +342,34 @@ pub async fn get_contacts_for_job(
     }
 
     Ok(contacts)
+}
+
+/// Mark a detected system email as a saved system contact (set is_system = 1)
+/// This will show the badge and prevent future detection checks
+pub async fn convert_to_user_contact(
+    db: &D1Database,
+    email: &str,
+    user_id: &str,
+) -> Result<EmailContact> {
+    // URL decode the email if needed (handles %40 -> @)
+    let decoded_email = email.replace("%40", "@").replace("%2E", ".");
+    let normalized_email = normalize_email(&decoded_email);
+
+    // Ensure contact exists first (use decoded email)
+    get_or_create_contact(db, &decoded_email, user_id).await?;
+
+    // Update is_system flag to 1 (mark as saved system contact)
+    db.prepare(
+        "UPDATE email_contacts SET is_system = 1, updated_at = CURRENT_TIMESTAMP WHERE email = ? AND user_id = ?",
+    )
+    .bind(&[normalized_email.clone().into(), user_id.into()])?
+    .run()
+    .await?;
+
+    // Return updated contact
+    get_contact(db, &normalized_email, user_id)
+        .await?
+        .ok_or_else(|| anyhow!("Contact not found after conversion"))
 }
 
 /// Extract individual email addresses from a field that may contain multiple emails

@@ -53,10 +53,12 @@ pub mod state;
 pub mod utils;
 
 pub mod components;
+pub mod hooks;
 
 // Re-export commonly used components
 pub use components::login_button::LoginButton;
 pub use components::login_page::LoginPage;
 pub use components::sidebar_nav::{SidebarNav, SidebarNavItem};
 pub use components::user_profile::UserProfile;
+pub use hooks::use_system_email_detection;
 pub use state::{use_auth, use_auth_provider};
