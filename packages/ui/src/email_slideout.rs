@@ -188,6 +188,7 @@ pub fn EmailSlideout() -> Element {
             job: None,
             prefill_title: Some(job_title),
             prefill_company: Some(company_name),
+            gmail_id: Some(email.gmail_id.clone()),
         }
         }
     } else {

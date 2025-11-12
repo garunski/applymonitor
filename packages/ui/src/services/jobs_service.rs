@@ -183,6 +183,17 @@ impl JobsService {
     }
 }
 
+/// Email contact information
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
+pub struct EmailContact {
+    pub email: String,
+    pub user_id: String,
+    pub name: Option<String>,
+    pub linkedin: Option<String>,
+    pub website: Option<String>,
+    pub is_system: bool,
+}
+
 /// Job details response with related data
 #[derive(Debug, Deserialize, Clone)]
 pub struct JobDetails {
@@ -191,4 +202,6 @@ pub struct JobDetails {
     pub comments: Vec<serde_json::Value>,
     pub timeline_events: Vec<serde_json::Value>,
     pub people: Vec<serde_json::Value>,
+    #[serde(default)]
+    pub contacts: Vec<EmailContact>,
 }

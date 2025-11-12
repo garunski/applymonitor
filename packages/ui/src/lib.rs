@@ -42,8 +42,15 @@ pub use comment_form::CommentForm;
 mod job_details;
 pub use job_details::JobDetails;
 
+mod email_contact_card;
+pub use email_contact_card::EmailContactCard;
+
+mod email_contact_slideout;
+pub use email_contact_slideout::EmailContactSlideout;
+
 pub mod services;
 pub mod state;
+pub mod utils;
 
 pub mod components;
 

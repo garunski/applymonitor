@@ -1,7 +1,9 @@
 //! Job details component
 
 use crate::comment_form::CommentForm;
-use crate::state::use_jobs;
+use crate::email_contact_card::EmailContactCard;
+use crate::email_contact_slideout::EmailContactSlideout;
+use crate::state::{use_email_contacts_provider, use_jobs};
 use crate::timeline::Timeline;
 use dioxus::prelude::*;
 
@@ -9,6 +11,7 @@ use dioxus::prelude::*;
 #[component]
 pub fn JobDetails(job_id: String) -> Element {
     let jobs_state = use_jobs();
+    let email_contacts_state = use_email_contacts_provider();
     let mut description = use_signal(String::new);
     let mut is_editing_description = use_signal(|| false);
     let saving_description = use_signal(|| false);
@@ -23,13 +26,15 @@ pub fn JobDetails(job_id: String) -> Element {
         }
     });
 
-    // Update description when job details load
+    // Update description and contacts when job details load
     use_effect({
         let jobs_state_desc = jobs_state;
+        let email_contacts_state_effect = email_contacts_state;
         let mut desc_signal = description;
         move || {
             if let Some(details) = jobs_state_desc.selected_job.read().as_ref() {
                 *desc_signal.write() = details.job.description.clone().unwrap_or_default();
+                email_contacts_state_effect.set_contacts(details.contacts.clone());
             }
         }
     });
@@ -54,7 +59,7 @@ pub fn JobDetails(job_id: String) -> Element {
     if let Some(details) = job_details {
         let job = &details.job;
         let timeline_events = &details.timeline_events;
-        let people = &details.people;
+        let contacts = &details.contacts;
 
         rsx! {
             div {
@@ -246,38 +251,25 @@ pub fn JobDetails(job_id: String) -> Element {
                             }
                         }
 
-                        // People involved section
-                        if !people.is_empty() {
-                            div {
-                                class: "rounded-lg bg-white dark:bg-gray-800 p-5 ring-1 ring-inset ring-gray-200 dark:ring-white/15",
-                                h2 {
-                                    class: "text-lg font-semibold text-gray-900 dark:text-white mb-4",
-                                    "People Involved"
+                        // Email contacts section
+                        div {
+                            class: "rounded-lg bg-white dark:bg-gray-800 p-5 ring-1 ring-inset ring-gray-200 dark:ring-white/15",
+                            h2 {
+                                class: "text-lg font-semibold text-gray-900 dark:text-white mb-4",
+                                "Email Contacts"
+                            }
+                            if contacts.is_empty() {
+                                p {
+                                    class: "text-sm text-gray-400 dark:text-gray-500 italic",
+                                    "No email contacts found. Link emails to this job to see contacts."
                                 }
+                            } else {
                                 ul {
                                     role: "list",
-                                    class: "space-y-3",
-                                    for person in people.iter() {
-                                        li {
-                                            class: "flex items-center gap-x-3",
-                                            div {
-                                                class: "size-8 flex-none rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center",
-                                                span {
-                                                    class: "text-xs font-medium text-gray-600 dark:text-gray-300",
-                                                    {person.get("name").and_then(|v| v.as_str()).unwrap_or("?").chars().next().unwrap_or('?').to_uppercase().collect::<String>()}
-                                                }
-                                            }
-                                            div {
-                                                class: "min-w-0 flex-auto",
-                                                p {
-                                                    class: "text-sm font-medium text-gray-900 dark:text-white",
-                                                    {person.get("name").and_then(|v| v.as_str()).unwrap_or("Unknown")}
-                                                }
-                                                p {
-                                                    class: "text-xs text-gray-500 dark:text-gray-400",
-                                                    {person.get("email").and_then(|v| v.as_str()).unwrap_or("")}
-                                                }
-                                            }
+                                    class: "space-y-2",
+                                    for contact in contacts.iter() {
+                                        EmailContactCard {
+                                            contact: contact.clone(),
                                         }
                                     }
                                 }
@@ -286,6 +278,9 @@ pub fn JobDetails(job_id: String) -> Element {
                     }
                 }
             }
+
+            // Email contact slideout
+            EmailContactSlideout {}
         }
     } else {
         rsx! {

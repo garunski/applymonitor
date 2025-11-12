@@ -7,7 +7,7 @@ mod types;
 
 use common::auth::require_auth;
 use common::cors::get_cors;
-use endpoints::{auth, health, job_comments, jobs, root};
+use endpoints::{auth, email_contacts, health, job_comments, jobs, root};
 
 #[event(fetch)]
 async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
@@ -158,6 +158,18 @@ async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
             job_comments::handler(req, ctx).await
         })
         .options("/jobs/:id/comments", |_, _| Response::ok(""))
+        // Email contacts routes
+        .get_async("/email-contacts", |req, ctx| async move {
+            email_contacts::handler(req, ctx).await
+        })
+        .get_async("/email-contacts/:email", |req, ctx| async move {
+            email_contacts::handler(req, ctx).await
+        })
+        .put_async("/email-contacts/:email", |req, ctx| async move {
+            email_contacts::handler(req, ctx).await
+        })
+        .options("/email-contacts", |_, _| Response::ok(""))
+        .options("/email-contacts/:email", |_, _| Response::ok(""))
         .run(req, env)
         .await?;
 

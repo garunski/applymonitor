@@ -17,6 +17,7 @@ pub fn JobForm(
     job: Option<Job>,
     prefill_title: Option<String>,
     prefill_company: Option<String>,
+    gmail_id: Option<String>,
 ) -> Element {
     let jobs_state = use_jobs();
     let mut title = use_signal(|| {
@@ -110,32 +111,68 @@ pub fn JobForm(
                             };
                             jobs_state.update_job(id, update_req);
                         } else {
-                            let create_req = CreateJobRequest {
-                                title: title_val,
-                                company: company_val,
-                                location: location_val,
-                                status: status_val,
-                            };
+                            let gmail_id_clone = gmail_id.clone();
                             let mut jobs_state_clone = jobs_state;
                             let mut open_signal = open;
 
                             spawn(async move {
-                                match crate::services::jobs_service::JobsService::create_job(create_req).await {
-                                    Ok(created_job) => {
-                                        // Update jobs list
-                                        let mut jobs_list = jobs_state_clone.jobs.read().clone();
-                                        jobs_list.push(created_job.clone());
-                                        *jobs_state_clone.jobs.write() = jobs_list;
+                                // If gmail_id is provided, use assign_email_to_job endpoint
+                                // which creates job AND links email in one call
+                                if let Some(gmail_id) = gmail_id_clone {
+                                    let create_req = crate::services::emails_service::CreateJobFromEmail {
+                                        title: title_val,
+                                        company: company_val,
+                                        location: location_val,
+                                        status: Some(status_val),
+                                    };
+                                    let assign_req = crate::services::emails_service::AssignJobRequest {
+                                        job_id: None,
+                                        create_job: Some(create_req),
+                                    };
 
-                                        // Set created job ID for navigation
-                                        if let Some(id) = created_job.id {
-                                            jobs_state_clone.set_created_job_id(id);
+                                    match crate::services::emails_service::EmailsService::assign_email_to_job(gmail_id, assign_req).await {
+                                        Ok(response) => {
+                                            // Fetch the created job to add to list
+                                            if let Ok(created_job) = crate::services::jobs_service::JobsService::fetch_job(response.job_id.clone()).await {
+                                                let mut jobs_list = jobs_state_clone.jobs.read().clone();
+                                                jobs_list.push(created_job.clone());
+                                                *jobs_state_clone.jobs.write() = jobs_list;
+                                            }
+
+                                            // Set created job ID for navigation
+                                            jobs_state_clone.set_created_job_id(response.job_id);
+                                            *open_signal.write() = false;
                                         }
-
-                                        *open_signal.write() = false;
+                                        Err(e) => {
+                                            *jobs_state_clone.error.write() = Some(crate::services::error::ServiceError::Server(500, format!("Failed to create job: {:?}", e)));
+                                        }
                                     }
-                                    Err(e) => {
-                                        *jobs_state_clone.error.write() = Some(e);
+                                } else {
+                                    // No gmail_id, use regular create_job endpoint
+                                    let create_req = CreateJobRequest {
+                                        title: title_val,
+                                        company: company_val,
+                                        location: location_val,
+                                        status: status_val,
+                                    };
+
+                                    match crate::services::jobs_service::JobsService::create_job(create_req).await {
+                                        Ok(created_job) => {
+                                            // Update jobs list
+                                            let mut jobs_list = jobs_state_clone.jobs.read().clone();
+                                            jobs_list.push(created_job.clone());
+                                            *jobs_state_clone.jobs.write() = jobs_list;
+
+                                            // Set created job ID for navigation
+                                            if let Some(id) = created_job.id {
+                                                jobs_state_clone.set_created_job_id(id);
+                                            }
+
+                                            *open_signal.write() = false;
+                                        }
+                                        Err(e) => {
+                                            *jobs_state_clone.error.write() = Some(e);
+                                        }
                                     }
                                 }
                             });

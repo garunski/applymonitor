@@ -179,24 +179,87 @@ pub async fn scan_emails(mut req: Request, env: Env) -> worker::Result<Response>
                 .map(|dt| dt.with_timezone(&Utc).to_rfc3339())
         });
 
-        match db
-            .prepare(
-                "INSERT OR IGNORE INTO emails (gmail_id, user_id, scan_id, thread_id, subject, \"from\", \"to\", snippet, date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            )
-            .bind(&[
-                msg.id.clone().into(),
-                user_id.clone().into(),
-                scan_id.clone().into(),
-                msg.thread_id.clone().into(),
-                msg.subject.as_deref().into(),
-                msg.from.as_deref().into(),
-                msg.to.as_deref().into(),
-                msg.snippet.clone().into(),
-                date_str.as_deref().into(),
-            ])?
-            .run()
-            .await
-        {
+        // Handle optional cc and bcc fields by duplicating INSERT statements
+        let result = match (&msg.cc, &msg.bcc) {
+            (Some(cc), Some(bcc)) => {
+                db.prepare(
+                    "INSERT OR IGNORE INTO emails (gmail_id, user_id, scan_id, thread_id, subject, \"from\", \"to\", cc, bcc, snippet, date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                )
+                .bind(&[
+                    msg.id.clone().into(),
+                    user_id.clone().into(),
+                    scan_id.clone().into(),
+                    msg.thread_id.clone().into(),
+                    msg.subject.as_deref().into(),
+                    msg.from.as_deref().into(),
+                    msg.to.as_deref().into(),
+                    cc.as_str().into(),
+                    bcc.as_str().into(),
+                    msg.snippet.clone().into(),
+                    date_str.as_deref().into(),
+                ])?
+                .run()
+                .await
+            }
+            (Some(cc), None) => {
+                db.prepare(
+                    "INSERT OR IGNORE INTO emails (gmail_id, user_id, scan_id, thread_id, subject, \"from\", \"to\", cc, bcc, snippet, date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?)",
+                )
+                .bind(&[
+                    msg.id.clone().into(),
+                    user_id.clone().into(),
+                    scan_id.clone().into(),
+                    msg.thread_id.clone().into(),
+                    msg.subject.as_deref().into(),
+                    msg.from.as_deref().into(),
+                    msg.to.as_deref().into(),
+                    cc.as_str().into(),
+                    msg.snippet.clone().into(),
+                    date_str.as_deref().into(),
+                ])?
+                .run()
+                .await
+            }
+            (None, Some(bcc)) => {
+                db.prepare(
+                    "INSERT OR IGNORE INTO emails (gmail_id, user_id, scan_id, thread_id, subject, \"from\", \"to\", cc, bcc, snippet, date) VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?)",
+                )
+                .bind(&[
+                    msg.id.clone().into(),
+                    user_id.clone().into(),
+                    scan_id.clone().into(),
+                    msg.thread_id.clone().into(),
+                    msg.subject.as_deref().into(),
+                    msg.from.as_deref().into(),
+                    msg.to.as_deref().into(),
+                    bcc.as_str().into(),
+                    msg.snippet.clone().into(),
+                    date_str.as_deref().into(),
+                ])?
+                .run()
+                .await
+            }
+            (None, None) => {
+                db.prepare(
+                    "INSERT OR IGNORE INTO emails (gmail_id, user_id, scan_id, thread_id, subject, \"from\", \"to\", cc, bcc, snippet, date) VALUES (?, ?, ?, ?, ?, ?, ?, NULL, NULL, ?, ?)",
+                )
+                .bind(&[
+                    msg.id.clone().into(),
+                    user_id.clone().into(),
+                    scan_id.clone().into(),
+                    msg.thread_id.clone().into(),
+                    msg.subject.as_deref().into(),
+                    msg.from.as_deref().into(),
+                    msg.to.as_deref().into(),
+                    msg.snippet.clone().into(),
+                    date_str.as_deref().into(),
+                ])?
+                .run()
+                .await
+            }
+        };
+
+        match result {
             Ok(_) => stored_count += 1,
             Err(e) => {
                 console_log!("Error storing email {}: {}", msg.id, e);

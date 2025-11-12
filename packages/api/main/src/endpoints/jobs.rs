@@ -1,5 +1,6 @@
 use crate::common::auth::require_auth;
 use crate::common::db::get_d1;
+use crate::services::db::email_contacts::get_contacts_for_job;
 use crate::services::password;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -113,6 +114,8 @@ async fn get_job_details(
         .await
         .map_err(|e| worker::Error::RustError(format!("Unauthorized: {}", e)))?;
 
+    let user_id_clone = user_id.clone();
+
     // Get job
     let job_result = db
         .prepare("SELECT * FROM jobs WHERE id = ?")
@@ -131,7 +134,7 @@ async fn get_job_details(
     // Get emails linked to this job
     let emails_result = db
         .prepare("SELECT * FROM emails WHERE job_id = ? AND user_id = ? ORDER BY date DESC")
-        .bind(&[id.clone().into(), user_id.into()])?
+        .bind(&[id.clone().into(), user_id_clone.clone().into()])?
         .all()
         .await?;
 
@@ -217,7 +220,7 @@ async fn get_job_details(
         b_ts.cmp(a_ts)
     });
 
-    // Extract unique people from emails
+    // Extract unique people from emails (legacy, keep for backward compatibility)
     let mut people: Vec<Value> = Vec::new();
     let mut seen_emails: std::collections::HashSet<String> = std::collections::HashSet::new();
 
@@ -244,12 +247,38 @@ async fn get_job_details(
         }
     }
 
+    // Get contacts from emails linked to this job using the shared function
+    let contacts: Vec<_> = get_contacts_for_job(db, &id, &user_id_clone)
+        .await
+        .unwrap_or_default();
+
+    // Convert contacts to JSON (checking for system emails)
+    let mut contacts_json: Vec<Value> = Vec::new();
+    for contact in contacts {
+        // Check if it's a system email and update is_system flag if needed
+        let is_system =
+            crate::services::db::system_email_domains::is_system_email(db, &contact.email)
+                .await
+                .unwrap_or(false);
+
+        let contact_json = serde_json::json!({
+            "email": contact.email,
+            "user_id": contact.user_id,
+            "name": contact.name,
+            "linkedin": contact.linkedin,
+            "website": contact.website,
+            "is_system": contact.is_system || is_system,
+        });
+        contacts_json.push(contact_json);
+    }
+
     let response = serde_json::json!({
         "job": job,
         "emails": emails,
         "comments": comments,
         "timeline_events": timeline_events,
         "people": people,
+        "contacts": contacts_json,
     });
 
     Response::from_json(&response)

@@ -12,16 +12,6 @@
       "problemMatcher": []
     },
     {
-      "label": "run:db",
-      "type": "shell",
-      "command": "task run:db",
-      "presentation": {
-        "reveal": "always",
-        "panel": "new"
-      },
-      "problemMatcher": []
-    },
-    {
       "label": "run:api",
       "type": "shell",
       "command": "task run:api",

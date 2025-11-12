@@ -1,5 +1,7 @@
 pub mod credentials;
+pub mod email_contacts;
 pub mod providers;
+pub mod system_email_domains;
 pub mod users;
 
 pub use credentials::{

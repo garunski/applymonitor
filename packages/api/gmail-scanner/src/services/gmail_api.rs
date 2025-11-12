@@ -12,6 +12,8 @@ pub struct GmailMessage {
     pub subject: Option<String>,
     pub from: Option<String>,
     pub to: Option<String>,
+    pub cc: Option<String>,
+    pub bcc: Option<String>,
     pub date: Option<String>,
 }
 
@@ -73,6 +75,8 @@ pub async fn get_message(access_token: &str, message_id: &str) -> Result<GmailMe
         .append_pair("metadataHeaders", "Subject")
         .append_pair("metadataHeaders", "From")
         .append_pair("metadataHeaders", "To")
+        .append_pair("metadataHeaders", "Cc")
+        .append_pair("metadataHeaders", "Bcc")
         .append_pair("metadataHeaders", "Date");
 
     let mut request = Request::new(url.as_str(), Method::Get)?;
@@ -95,6 +99,8 @@ pub async fn get_message(access_token: &str, message_id: &str) -> Result<GmailMe
     let mut subject = None;
     let mut from = None;
     let mut to = None;
+    let mut cc = None;
+    let mut bcc = None;
     let mut date = None;
 
     for header in headers {
@@ -105,6 +111,8 @@ pub async fn get_message(access_token: &str, message_id: &str) -> Result<GmailMe
             "subject" => subject = value,
             "from" => from = value,
             "to" => to = value,
+            "cc" => cc = value,
+            "bcc" => bcc = value,
             "date" => date = value,
             _ => {}
         }
@@ -123,6 +131,8 @@ pub async fn get_message(access_token: &str, message_id: &str) -> Result<GmailMe
         subject,
         from,
         to,
+        cc,
+        bcc,
         date,
     })
 }
