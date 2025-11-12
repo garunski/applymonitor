@@ -3,7 +3,7 @@
 use crate::Route;
 use dioxus::prelude::*;
 use dioxus_router::use_navigator;
-use ui::{state::use_jobs_provider, use_auth, DashboardContent};
+use ui::{use_auth, DashboardContent};
 
 /// Web-specific dashboard view wrapper
 #[component]
@@ -21,9 +21,6 @@ pub fn Dashboard() -> Element {
             navigator.push(Route::Login {});
         }
     });
-
-    // Provide jobs state context at the top level
-    use_jobs_provider();
 
     rsx! {
         document::Title { "Dashboard - ApplyMonitor" }

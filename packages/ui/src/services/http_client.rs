@@ -26,8 +26,7 @@ pub async fn delete(url: &str) -> Result<Response, ServiceError> {
 
 /// Internal function to make HTTP requests with credentials
 async fn request(url: &str, method: &str, body: Option<&str>) -> Result<Response, ServiceError> {
-    #[allow(unused_mut)]
-    let mut opts = RequestInit::new();
+    let opts = RequestInit::new();
     opts.set_method(method);
     opts.set_mode(RequestMode::Cors);
     opts.set_credentials(RequestCredentials::Include); // Include cookies in cross-origin requests

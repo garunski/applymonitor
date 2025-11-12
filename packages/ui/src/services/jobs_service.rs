@@ -11,6 +11,7 @@ pub struct Job {
     pub company: String,
     pub location: Option<String>,
     pub status: String,
+    pub description: Option<String>,
     pub created_at: Option<String>,
     pub updated_at: Option<String>,
 }
@@ -135,4 +136,59 @@ impl JobsService {
             Err(ServiceError::Server(status, text))
         }
     }
+
+    /// Fetch job details with related data (emails, comments, timeline)
+    pub async fn fetch_job_details(id: String) -> Result<JobDetails, ServiceError> {
+        let url = format!("{}/jobs/{}?include=details", get_api_base_url(), id);
+
+        let response = http_client::get(&url).await?;
+        let status = response.status();
+
+        if status == 200 {
+            http_client::json::<JobDetails>(response).await
+        } else if status == 404 {
+            Err(ServiceError::NotFound)
+        } else if status == 401 {
+            Err(ServiceError::Unauthorized)
+        } else {
+            let text = http_client::text(response).await.unwrap_or_default();
+            Err(ServiceError::Server(status, text))
+        }
+    }
+
+    /// Update job description only
+    pub async fn update_job_description(
+        id: String,
+        description: Option<String>,
+    ) -> Result<Job, ServiceError> {
+        let url = format!("{}/jobs/{}?description_only=true", get_api_base_url(), id);
+
+        let body = serde_json::json!({ "description": description });
+        let body_str = serde_json::to_string(&body)
+            .map_err(|e| ServiceError::Parse(format!("Failed to serialize: {}", e)))?;
+
+        let response = http_client::put(&url, Some(&body_str)).await?;
+        let status = response.status();
+
+        if status == 200 {
+            http_client::json::<Job>(response).await
+        } else if status == 404 {
+            Err(ServiceError::NotFound)
+        } else if status == 401 {
+            Err(ServiceError::Unauthorized)
+        } else {
+            let text = http_client::text(response).await.unwrap_or_default();
+            Err(ServiceError::Server(status, text))
+        }
+    }
+}
+
+/// Job details response with related data
+#[derive(Debug, Deserialize, Clone)]
+pub struct JobDetails {
+    pub job: Job,
+    pub emails: Vec<serde_json::Value>,
+    pub comments: Vec<serde_json::Value>,
+    pub timeline_events: Vec<serde_json::Value>,
+    pub people: Vec<serde_json::Value>,
 }

@@ -25,10 +25,8 @@ use std::rc::Rc;
 pub fn DashboardContent() -> Element {
     let jobs_state = use_jobs();
     let mut show_create_dialog = use_signal(|| false);
-    #[allow(unused_mut)]
-    let mut show_edit_dialog = use_signal(|| false);
-    #[allow(unused_mut)]
-    let mut job_to_edit = use_signal(|| None::<Job>);
+    let show_edit_dialog = use_signal(|| false);
+    let job_to_edit = use_signal(|| None::<Job>);
     let mut show_delete_dialog = use_signal(|| Some(false));
     let mut job_to_delete = use_signal(|| None::<String>);
 

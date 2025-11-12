@@ -4,8 +4,8 @@ use dioxus_free_icons::{
     Icon,
 };
 
-use ui::{use_auth_provider, SidebarLayout};
-use views::{Accounts, Blog, Dashboard, Emails, Home, Jobs, Login};
+use ui::{state::use_jobs_provider, use_auth_provider, SidebarLayout};
+use views::{Accounts, Blog, Dashboard, Emails, Home, JobDetails, Jobs, Login};
 
 mod views;
 
@@ -23,6 +23,8 @@ pub enum Route {
     Blog { id: i32 },
     #[route("/jobs")]
     Jobs {},
+    #[route("/jobs/:id")]
+    JobDetails { id: String },
     #[route("/emails")]
     Emails {},
     #[route("/settings/accounts")]
@@ -39,6 +41,9 @@ fn main() {
 fn App() -> Element {
     // Initialize auth state provider
     let auth = use_auth_provider();
+
+    // Initialize jobs state provider (shared across all routes)
+    use_jobs_provider();
 
     // Fetch user on mount
     use_effect(move || {

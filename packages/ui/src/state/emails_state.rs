@@ -5,6 +5,7 @@ use crate::services::{
     error::ServiceError,
     jobs_service::CreateJobRequest,
 };
+use crate::state::use_jobs;
 use dioxus::prelude::*;
 
 /// Emails state containing signals for emails, loading, error, and selected email
@@ -115,6 +116,7 @@ impl EmailsState {
     pub fn assign_to_job(&self, gmail_id: String, create_job: CreateJobRequest) {
         let mut loading = self.loading;
         let mut error = self.error;
+        let jobs_state = use_jobs();
 
         spawn(async move {
             *loading.write() = true;
@@ -131,8 +133,10 @@ impl EmailsState {
             };
 
             match EmailsService::assign_email_to_job(gmail_id, request).await {
-                Ok(_) => {
+                Ok(response) => {
                     *error.write() = None;
+                    // Set created job ID for navigation
+                    jobs_state.set_created_job_id(response.job_id);
                 }
                 Err(e) => {
                     *error.write() = Some(e);

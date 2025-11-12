@@ -33,6 +33,15 @@ pub use job_select_dialog::JobSelectDialog;
 mod sidebar;
 pub use sidebar::{SidebarLayout, SidebarLayoutProps};
 
+mod timeline;
+pub use timeline::Timeline;
+
+mod comment_form;
+pub use comment_form::CommentForm;
+
+mod job_details;
+pub use job_details::JobDetails;
+
 pub mod services;
 pub mod state;
 

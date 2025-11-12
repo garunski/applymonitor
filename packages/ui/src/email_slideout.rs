@@ -189,8 +189,6 @@ pub fn EmailSlideout() -> Element {
             prefill_title: Some(job_title),
             prefill_company: Some(company_name),
         }
-        // Note: Job creation from email doesn't automatically link email to job yet
-        // This will be implemented when we add job_id column to emails table
         }
     } else {
         rsx! { div {} }

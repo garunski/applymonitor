@@ -13,6 +13,9 @@ pub use emails_view::Emails;
 mod jobs_view;
 pub use jobs_view::Jobs;
 
+mod job_details;
+pub use job_details::JobDetails;
+
 mod login;
 pub use login::Login;
 

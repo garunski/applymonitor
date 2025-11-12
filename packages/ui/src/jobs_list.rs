@@ -10,18 +10,16 @@ use crate::components::dropdown_menu::{
 };
 use crate::{job_form::JobForm, services::jobs_service::Job, state::use_jobs};
 use dioxus::prelude::*;
+use dioxus_router::Link;
 use std::rc::Rc;
 
 /// Jobs list component
 #[component]
 pub fn JobsList() -> Element {
     let jobs_state = use_jobs();
-    #[allow(unused_mut)]
     let mut show_create_dialog = use_signal(|| false);
-    #[allow(unused_mut)]
-    let mut show_edit_dialog = use_signal(|| false);
-    #[allow(unused_mut)]
-    let mut job_to_edit = use_signal(|| None::<Job>);
+    let show_edit_dialog = use_signal(|| false);
+    let job_to_edit = use_signal(|| None::<Job>);
     let mut show_delete_dialog = use_signal(|| Some(false));
     let mut job_to_delete = use_signal(|| None::<String>);
 
@@ -114,10 +112,16 @@ pub fn JobsList() -> Element {
                                         class: "min-w-0 flex-auto",
                                         p {
                                             class: "text-sm/6 font-semibold text-gray-900 dark:text-white",
-                                            a {
-                                                href: "#",
-                                                class: "hover:underline",
-                                                {job.title.clone()}
+                                            if let Some(ref job_id) = job.id {
+                                                Link {
+                                                    to: format!("/jobs/{}", job_id),
+                                                    class: "hover:underline",
+                                                    {job.title.clone()}
+                                                }
+                                            } else {
+                                                span {
+                                                    {job.title.clone()}
+                                                }
                                             }
                                         }
                                         p {

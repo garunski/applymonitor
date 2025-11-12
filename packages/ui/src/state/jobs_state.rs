@@ -2,7 +2,7 @@
 
 use crate::services::{
     error::ServiceError,
-    jobs_service::{CreateJobRequest, Job, JobsService, UpdateJobRequest},
+    jobs_service::{CreateJobRequest, Job, JobDetails, JobsService, UpdateJobRequest},
 };
 use dioxus::prelude::*;
 
@@ -12,6 +12,8 @@ pub struct JobsState {
     pub jobs: Signal<Vec<Job>>,
     pub loading: Signal<bool>,
     pub error: Signal<Option<ServiceError>>,
+    pub selected_job: Signal<Option<JobDetails>>,
+    pub created_job_id: Signal<Option<String>>,
 }
 
 /// Provide jobs state context to the component tree
@@ -19,11 +21,15 @@ pub fn use_jobs_provider() -> JobsState {
     let jobs = use_signal(Vec::<Job>::new);
     let loading = use_signal(|| false);
     let error = use_signal(|| None::<ServiceError>);
+    let selected_job = use_signal(|| None::<JobDetails>);
+    let created_job_id = use_signal(|| None::<String>);
 
     let state = JobsState {
         jobs,
         loading,
         error,
+        selected_job,
+        created_job_id,
     };
     use_context_provider(|| state);
     state
@@ -173,5 +179,64 @@ impl JobsState {
 
             *loading.write() = false;
         });
+    }
+
+    /// Fetch job details with related data
+    pub fn fetch_job_details(&self, id: String) {
+        let mut selected_job = self.selected_job;
+        let mut loading = self.loading;
+        let mut error = self.error;
+
+        spawn(async move {
+            *loading.write() = true;
+            *error.write() = None;
+
+            match JobsService::fetch_job_details(id).await {
+                Ok(details) => {
+                    *selected_job.write() = Some(details);
+                    *error.write() = None;
+                }
+                Err(e) => {
+                    *error.write() = Some(e);
+                }
+            }
+
+            *loading.write() = false;
+        });
+    }
+
+    /// Update job description only
+    pub fn update_job_description(&self, id: String, description: Option<String>) {
+        let mut selected_job = self.selected_job;
+        let mut loading = self.loading;
+        let mut error = self.error;
+
+        spawn(async move {
+            *loading.write() = true;
+            *error.write() = None;
+
+            match JobsService::update_job_description(id, description).await {
+                Ok(updated_job) => {
+                    // Update the job in selected_job if it exists
+                    let mut current_details = selected_job.read().clone();
+                    if let Some(ref mut details) = current_details {
+                        details.job = updated_job;
+                        *selected_job.write() = current_details;
+                    }
+                    *error.write() = None;
+                }
+                Err(e) => {
+                    *error.write() = Some(e);
+                }
+            }
+
+            *loading.write() = false;
+        });
+    }
+
+    /// Set the created job ID signal (used for navigation after job creation)
+    pub fn set_created_job_id(&self, id: String) {
+        let mut created_job_id = self.created_job_id;
+        *created_job_id.write() = Some(id);
     }
 }

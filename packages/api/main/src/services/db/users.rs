@@ -39,8 +39,8 @@ pub async fn find_or_create_user(
             db.prepare("UPDATE users SET email = ?, name = ?, picture = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?")
                 .bind(&[
                     email.into(),
-                    name.unwrap_or("").into(),
-                    picture.unwrap_or("").into(),
+                    name.into(),
+                    picture.into(),
                     user_id.clone().into(),
                 ])?
                 .run()
@@ -69,8 +69,8 @@ pub async fn find_or_create_user(
             // Update user info
             db.prepare("UPDATE users SET name = ?, picture = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?")
                 .bind(&[
-                    name.unwrap_or("").into(),
-                    picture.unwrap_or("").into(),
+                    name.into(),
+                    picture.into(),
                     user_id.clone().into(),
                 ])?
                 .run()
@@ -90,9 +90,9 @@ pub async fn find_or_create_user(
     db.prepare("INSERT INTO users (id, email, name, picture) VALUES (?, ?, ?, ?)")
         .bind(&[
             user_id.clone().into(),
-            email.unwrap_or("").into(),
-            name.unwrap_or("").into(),
-            picture.unwrap_or("").into(),
+            email.into(),
+            name.into(),
+            picture.into(),
         ])?
         .run()
         .await?;

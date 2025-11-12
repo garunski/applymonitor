@@ -7,7 +7,7 @@ mod types;
 
 use common::auth::require_auth;
 use common::cors::get_cors;
-use endpoints::{auth, health, jobs, root};
+use endpoints::{auth, health, job_comments, jobs, root};
 
 #[event(fetch)]
 async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
@@ -150,6 +150,14 @@ async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
         })
         .options("/jobs", |_, _| Response::ok(""))
         .options("/jobs/:id", |_, _| Response::ok(""))
+        // Job comments routes
+        .get_async("/jobs/:id/comments", |req, ctx| async move {
+            job_comments::handler(req, ctx).await
+        })
+        .post_async("/jobs/:id/comments", |req, ctx| async move {
+            job_comments::handler(req, ctx).await
+        })
+        .options("/jobs/:id/comments", |_, _| Response::ok(""))
         .run(req, env)
         .await?;
 

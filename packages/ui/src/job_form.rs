@@ -116,7 +116,30 @@ pub fn JobForm(
                                 location: location_val,
                                 status: status_val,
                             };
-                            jobs_state.create_job(create_req);
+                            let mut jobs_state_clone = jobs_state;
+                            let mut open_signal = open;
+
+                            spawn(async move {
+                                match crate::services::jobs_service::JobsService::create_job(create_req).await {
+                                    Ok(created_job) => {
+                                        // Update jobs list
+                                        let mut jobs_list = jobs_state_clone.jobs.read().clone();
+                                        jobs_list.push(created_job.clone());
+                                        *jobs_state_clone.jobs.write() = jobs_list;
+
+                                        // Set created job ID for navigation
+                                        if let Some(id) = created_job.id {
+                                            jobs_state_clone.set_created_job_id(id);
+                                        }
+
+                                        *open_signal.write() = false;
+                                    }
+                                    Err(e) => {
+                                        *jobs_state_clone.error.write() = Some(e);
+                                    }
+                                }
+                            });
+                            return;
                         }
 
                         *open.write() = false;

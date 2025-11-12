@@ -3,7 +3,7 @@
 use crate::Route;
 use dioxus::prelude::*;
 use dioxus_router::use_navigator;
-use ui::{state::use_emails_provider, state::use_jobs_provider, use_auth, EmailsList};
+use ui::{state::use_emails_provider, state::use_jobs, use_auth, EmailsList};
 
 /// Web-specific emails view wrapper
 #[component]
@@ -26,9 +26,24 @@ pub fn Emails() -> Element {
         }
     });
 
-    // Provide emails and jobs state context at the top level
+    // Provide emails state context (jobs state is provided at App level)
     use_emails_provider();
-    use_jobs_provider();
+
+    // Consume jobs state (provided at App level)
+    let jobs_state = use_jobs();
+
+    // Watch for created job ID and navigate
+    use_effect({
+        let mut created_job_id = jobs_state.created_job_id;
+        move || {
+            let job_id_opt = created_job_id.read().clone();
+            if let Some(job_id) = job_id_opt {
+                navigator.push(Route::JobDetails { id: job_id });
+                // Reset the signal after navigation
+                *created_job_id.write() = None;
+            }
+        }
+    });
 
     rsx! {
         document::Title { "Emails - ApplyMonitor" }

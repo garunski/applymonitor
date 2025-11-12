@@ -94,9 +94,27 @@ pub async fn assign_email_to_job(
 
     // If job_id is provided, link email to existing job
     if let Some(job_id) = body.job_id {
-        // Verify job exists (we'll add a job_id column to emails table)
-        // For now, we'll just return success
-        // TODO: Add job_id column to emails table and update it here
+        // Verify job exists
+        let job_exists = db
+            .prepare("SELECT id FROM jobs WHERE id = ?")
+            .bind(&[job_id.clone().into()])?
+            .first::<Value>(None)
+            .await?;
+
+        if job_exists.is_none() {
+            return Response::error("Job not found", 404);
+        }
+
+        // Link email to job
+        db.prepare("UPDATE emails SET job_id = ? WHERE gmail_id = ? AND user_id = ?")
+            .bind(&[
+                job_id.clone().into(),
+                gmail_id.clone().into(),
+                user_id.into(),
+            ])?
+            .run()
+            .await?;
+
         return Response::from_json(&serde_json::json!({
             "success": true,
             "gmail_id": gmail_id,
@@ -112,20 +130,46 @@ pub async fn assign_email_to_job(
 
         let status = create_job.status.unwrap_or_else(|| "open".to_string());
 
-        db.prepare(
-            "INSERT INTO jobs (id, title, company, location, status) VALUES (?, ?, ?, ?, ?)",
-        )
-        .bind(&[
-            job_id.clone().into(),
-            create_job.title.into(),
-            create_job.company.into(),
-            create_job.location.as_deref().into(),
-            status.into(),
-        ])?
-        .run()
-        .await?;
+        match &create_job.location {
+            Some(location) => {
+                db.prepare(
+                    "INSERT INTO jobs (id, title, company, location, status) VALUES (?, ?, ?, ?, ?)",
+                )
+                .bind(&[
+                    job_id.clone().into(),
+                    create_job.title.into(),
+                    create_job.company.into(),
+                    location.as_str().into(),
+                    status.into(),
+                ])?
+                .run()
+                .await?;
+            }
+            None => {
+                db.prepare(
+                    "INSERT INTO jobs (id, title, company, location, status) VALUES (?, ?, ?, NULL, ?)",
+                )
+                .bind(&[
+                    job_id.clone().into(),
+                    create_job.title.into(),
+                    create_job.company.into(),
+                    status.into(),
+                ])?
+                .run()
+                .await?;
+            }
+        }
 
-        // TODO: Link email to job when we add job_id column
+        // Link email to job
+        db.prepare("UPDATE emails SET job_id = ? WHERE gmail_id = ? AND user_id = ?")
+            .bind(&[
+                job_id.clone().into(),
+                gmail_id.clone().into(),
+                user_id.into(),
+            ])?
+            .run()
+            .await?;
+
         return Response::from_json(&serde_json::json!({
             "success": true,
             "gmail_id": gmail_id,
