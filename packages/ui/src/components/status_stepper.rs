@@ -20,15 +20,29 @@ pub fn StatusStepper(
         status_id: i32,
     }
 
+    let current_index = statuses.iter().position(|s| s.id == current_id);
+    let next_index = current_index.and_then(|idx| {
+        if idx < statuses.len() - 1 {
+            Some(idx + 1)
+        } else {
+            None
+        }
+    });
+
     let steps: Vec<StepData> = statuses
         .iter()
         .enumerate()
-        .map(|(idx, status)| StepData {
-            status: status.clone(),
-            index: idx + 1,
-            is_completed: current_id > status.id,
-            is_current: current_id == status.id,
-            status_id: status.id,
+        .map(|(idx, status)| {
+            let status_id = status.id;
+            let is_current_or_before = current_index.is_some_and(|curr_idx| idx <= curr_idx);
+            let is_next_status = next_index == Some(idx);
+            StepData {
+                status: status.clone(),
+                index: idx + 1,
+                is_completed: is_current_or_before,
+                is_current: is_next_status,
+                status_id,
+            }
         })
         .collect();
 
@@ -68,8 +82,31 @@ fn StatusStep(
     rsx! {
         li {
             class: "relative md:flex md:flex-1",
-            if is_completed {
-                // Completed step
+            if is_current {
+                // Next step (highlighted blue)
+                button {
+                    class: "flex items-center px-6 py-4 text-sm font-medium cursor-pointer",
+                    onclick: move |_| on_click.call(()),
+                    span {
+                        class: "flex size-10 shrink-0 items-center justify-center rounded-full border-2 border-indigo-600 dark:border-indigo-400",
+                        span {
+                            class: "text-indigo-600 dark:text-indigo-400",
+                            {step_number}
+                        }
+                    }
+                    span {
+                        class: "ml-4 text-sm font-medium text-indigo-600 dark:text-indigo-400",
+                        {status.display_name.clone()}
+                        if let Some(ref desc) = status.description {
+                            div {
+                                class: "text-xs text-indigo-500 dark:text-indigo-300 mt-1",
+                                {desc.clone()}
+                            }
+                        }
+                    }
+                }
+            } else if is_completed {
+                // Completed step (checkmark)
                 button {
                     class: "group flex w-full items-center cursor-pointer",
                     onclick: move |_| on_click.call(()),
@@ -98,29 +135,6 @@ fn StatusStep(
                                     class: "text-xs text-gray-500 dark:text-gray-400 mt-1",
                                     {desc.clone()}
                                 }
-                            }
-                        }
-                    }
-                }
-            } else if is_current {
-                // Current step
-                button {
-                    class: "flex items-center px-6 py-4 text-sm font-medium cursor-pointer",
-                    onclick: move |_| on_click.call(()),
-                    span {
-                        class: "flex size-10 shrink-0 items-center justify-center rounded-full border-2 border-indigo-600 dark:border-indigo-400",
-                        span {
-                            class: "text-indigo-600 dark:text-indigo-400",
-                            {step_number}
-                        }
-                    }
-                    span {
-                        class: "ml-4 text-sm font-medium text-indigo-600 dark:text-indigo-400",
-                        {status.display_name.clone()}
-                        if let Some(ref desc) = status.description {
-                            div {
-                                class: "text-xs text-indigo-500 dark:text-indigo-300 mt-1",
-                                {desc.clone()}
                             }
                         }
                     }

@@ -27,14 +27,12 @@ pub fn JobDetails(job_id: String) -> Element {
     let editing_title = use_signal(|| false);
     let editing_company = use_signal(|| false);
     let editing_location = use_signal(|| false);
-    let editing_status = use_signal(|| false);
     let editing_description = use_signal(|| false);
 
     // Edit values
     let edit_title_value = use_signal(String::new);
     let edit_company_value = use_signal(String::new);
     let edit_location_value = use_signal(String::new);
-    let edit_status_value = use_signal(String::new);
     let edit_description_value = use_signal(String::new);
 
     // Tab state
@@ -185,13 +183,10 @@ pub fn JobDetails(job_id: String) -> Element {
                             if *active_tab.read() == DetailsTabType::Details {
                                 DetailsTab {
                                     job_id: job_id.clone(),
-                                    status_id: job.status_id,
                                     created_at: job.created_at.clone(),
                                     updated_at: job.updated_at.clone(),
                                     description: job.description.clone(),
-                                    editing_status,
                                     editing_description,
-                                    edit_status_value,
                                     edit_description_value,
                                 }
                             } else {
