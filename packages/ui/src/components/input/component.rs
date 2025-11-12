@@ -20,15 +20,23 @@ pub fn Input(
     oncopy: Option<EventHandler<ClipboardEvent>>,
     oncut: Option<EventHandler<ClipboardEvent>>,
     onpaste: Option<EventHandler<ClipboardEvent>>,
+    class: Option<String>,
     #[props(extends=GlobalAttributes)]
     #[props(extends=input)]
     attributes: Vec<Attribute>,
     children: Element,
 ) -> Element {
+    // Merge base input classes with optional custom class (Catalyst pattern)
+    let base_classes = "block w-full rounded-md border-0 px-3 py-1.5 text-base text-zinc-900 shadow-sm ring-1 ring-inset ring-zinc-300 placeholder:text-zinc-400 focus:ring-2 focus:ring-inset focus:ring-zinc-900 sm:text-sm/6 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-white/5 dark:text-white dark:ring-white/10 dark:placeholder:text-zinc-500 dark:focus:ring-white";
+    let input_class = if let Some(custom_class) = class {
+        format!("{} {}", base_classes, custom_class)
+    } else {
+        base_classes.to_string()
+    };
+
     rsx! {
-        document::Link { rel: "stylesheet", href: asset!("./style.css") }
         input {
-            class: "input",
+            class: "{input_class}",
             oninput: move |e| _ = oninput.map(|callback| callback(e)),
             onchange: move |e| _ = onchange.map(|callback| callback(e)),
             oninvalid: move |e| _ = oninvalid.map(|callback| callback(e)),

@@ -440,10 +440,14 @@ pub fn DashboardContent() -> Element {
             JobForm {
                 open: show_create_dialog,
                 job: None,
+                prefill_title: None,
+                prefill_company: None,
             }
             JobForm {
                 open: show_edit_dialog,
                 job: job_to_edit.read().clone(),
+                prefill_title: None,
+                prefill_company: None,
             }
 
             // Delete confirmation dialog

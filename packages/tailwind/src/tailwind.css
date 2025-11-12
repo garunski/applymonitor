@@ -1,3 +1,6 @@
+/* Import theme CSS variables first */
+@import '../../ui/assets/dx-components-theme.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

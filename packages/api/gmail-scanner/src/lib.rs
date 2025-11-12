@@ -5,7 +5,7 @@ mod handlers;
 mod services;
 
 use common::cors::get_cors;
-use handlers::{auth, scan};
+use handlers::{auth, emails, scan};
 
 #[event(fetch)]
 async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
@@ -40,6 +40,23 @@ async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
         .get_async("/scans", |req, ctx| async move {
             scan::list_scans(req, ctx.env).await
         })
+        .get_async("/emails", |req, ctx| async move {
+            emails::list_emails(req, ctx.env).await
+        })
+        .get_async("/emails/:id", |req, ctx| async move {
+            let gmail_id = ctx
+                .param("id")
+                .ok_or_else(|| worker::Error::RustError("Invalid Gmail ID".to_string()))?
+                .to_string();
+            emails::get_email(req, ctx.env, gmail_id).await
+        })
+        .post_async("/emails/:id/assign-job", |req, ctx| async move {
+            let gmail_id = ctx
+                .param("id")
+                .ok_or_else(|| worker::Error::RustError("Invalid Gmail ID".to_string()))?
+                .to_string();
+            emails::assign_email_to_job(req, ctx.env, gmail_id).await
+        })
         .options("/status", |_, _| Response::ok(""))
         .options("/auth", |_, _| Response::ok(""))
         .options("/gmail/callback", |_, _| Response::ok(""))
@@ -47,6 +64,9 @@ async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
         .options("/scan", |_, _| Response::ok(""))
         .options("/scan/:id", |_, _| Response::ok(""))
         .options("/scans", |_, _| Response::ok(""))
+        .options("/emails", |_, _| Response::ok(""))
+        .options("/emails/:id", |_, _| Response::ok(""))
+        .options("/emails/:id/assign-job", |_, _| Response::ok(""))
         .run(req, env)
         .await;
 
@@ -55,7 +75,7 @@ async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
         Ok(resp) => apply_cors(resp, &cors),
         Err(e) => {
             // Create error response with CORS
-            let error_resp = Response::error(&format!("Internal server error: {:?}", e), 500)?;
+            let error_resp = Response::error(format!("Internal server error: {:?}", e), 500)?;
             apply_cors(error_resp, &cors)
         }
     }

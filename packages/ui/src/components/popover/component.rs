@@ -6,9 +6,8 @@ use dioxus_primitives::popover::{
 #[component]
 pub fn PopoverRoot(props: PopoverRootProps) -> Element {
     rsx! {
-        document::Link { rel: "stylesheet", href: asset!("./style.css") }
         popover::PopoverRoot {
-            class: "popover",
+            class: "relative",
             is_modal: props.is_modal,
             open: props.open,
             default_open: props.default_open,
@@ -22,7 +21,11 @@ pub fn PopoverRoot(props: PopoverRootProps) -> Element {
 #[component]
 pub fn PopoverTrigger(props: PopoverTriggerProps) -> Element {
     rsx! {
-        popover::PopoverTrigger { class: "popover-trigger", attributes: props.attributes, {props.children} }
+        popover::PopoverTrigger {
+            class: "",
+            attributes: props.attributes,
+            {props.children}
+        }
     }
 }
 
@@ -30,7 +33,7 @@ pub fn PopoverTrigger(props: PopoverTriggerProps) -> Element {
 pub fn PopoverContent(props: PopoverContentProps) -> Element {
     rsx! {
         popover::PopoverContent {
-            class: "popover-content",
+            class: "absolute z-10 mt-2 w-64 rounded-lg bg-white p-2 shadow-lg ring-1 ring-black ring-opacity-5 dark:bg-zinc-800 dark:ring-white/10",
             id: props.id,
             side: props.side,
             align: props.align,

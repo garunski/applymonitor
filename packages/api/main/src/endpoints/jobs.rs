@@ -108,12 +108,17 @@ async fn create_job(db: &D1Database, mut req: Request) -> Result<Response> {
     let job_id = password::generate_uuid()
         .map_err(|e| worker::Error::RustError(format!("Failed to generate UUID: {}", e)))?;
 
+    let location_binding = match job.location.as_deref() {
+        Some(loc) => loc.into(),
+        None => Option::<&str>::None.into(),
+    };
+
     db.prepare("INSERT INTO jobs (id, title, company, location, status) VALUES (?, ?, ?, ?, ?)")
         .bind(&[
             job_id.clone().into(),
             job.title.into(),
             job.company.into(),
-            job.location.as_deref().into(),
+            location_binding,
             job.status.into(),
         ])?
         .run()
@@ -161,13 +166,18 @@ async fn update_job(db: &D1Database, id: String, mut req: Request) -> Result<Res
         return Response::error("Job not found", 404);
     }
 
+    let location_binding = match job.location.as_deref() {
+        Some(loc) => loc.into(),
+        None => Option::<&str>::None.into(),
+    };
+
     db.prepare(
         "UPDATE jobs SET title = ?, company = ?, location = ?, status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?"
     )
     .bind(&[
         job.title.into(),
         job.company.into(),
-        job.location.as_deref().into(),
+        location_binding,
         job.status.into(),
         id.clone().into(),
     ])?

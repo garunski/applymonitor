@@ -112,22 +112,24 @@ pub async fn status(req: Request, env: Env) -> worker::Result<Response> {
 
     let db = get_d1(&env)?;
     let result = db
-        .prepare("SELECT expires_at FROM gmail_tokens WHERE user_id = ?")
+        .prepare("SELECT refresh_token, expires_at FROM gmail_tokens WHERE user_id = ?")
         .bind(&[user_id.into()])?
         .first::<Value>(None)
         .await?;
 
     if let Some(row) = result {
+        let refresh_token = row
+            .get("refresh_token")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string());
+
         let expires_at = row
             .get("expires_at")
             .and_then(|v| v.as_str())
             .map(|s| s.to_string());
 
-        let is_connected = expires_at
-            .as_ref()
-            .and_then(|e| chrono::DateTime::parse_from_rfc3339(e).ok())
-            .map(|dt| dt > chrono::Utc::now())
-            .unwrap_or(false);
+        // Connection is valid if refresh_token exists (can refresh access token)
+        let is_connected = refresh_token.is_some();
 
         Response::from_json(&serde_json::json!({
             "connected": is_connected,

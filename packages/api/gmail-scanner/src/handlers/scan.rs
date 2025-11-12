@@ -165,6 +165,45 @@ pub async fn scan_emails(mut req: Request, env: Env) -> worker::Result<Response>
         }
     }
 
+    // Store emails in database
+    let mut stored_count = 0;
+    for msg in &all_messages {
+        // Parse date if available
+        let date_str = msg.date.as_ref().and_then(|d| {
+            DateTime::parse_from_rfc3339(d)
+                .ok()
+                .or_else(|| {
+                    // Try other date formats
+                    chrono::DateTime::parse_from_str(d, "%a, %d %b %Y %H:%M:%S %z").ok()
+                })
+                .map(|dt| dt.with_timezone(&Utc).to_rfc3339())
+        });
+
+        match db
+            .prepare(
+                "INSERT OR IGNORE INTO emails (gmail_id, user_id, scan_id, thread_id, subject, \"from\", \"to\", snippet, date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            )
+            .bind(&[
+                msg.id.clone().into(),
+                user_id.clone().into(),
+                scan_id.clone().into(),
+                msg.thread_id.clone().into(),
+                msg.subject.as_deref().into(),
+                msg.from.as_deref().into(),
+                msg.to.as_deref().into(),
+                msg.snippet.clone().into(),
+                date_str.as_deref().into(),
+            ])?
+            .run()
+            .await
+        {
+            Ok(_) => stored_count += 1,
+            Err(e) => {
+                console_log!("Error storing email {}: {}", msg.id, e);
+            }
+        }
+    }
+
     let emails_found = all_messages.len() as i32;
 
     db.prepare(
@@ -180,7 +219,8 @@ pub async fn scan_emails(mut req: Request, env: Env) -> worker::Result<Response>
     Response::from_json(&serde_json::json!({
         "scan_id": scan_id,
         "emails_found": all_messages.len(),
-        "messages": all_messages
+        "messages": all_messages,
+        "stored_count": stored_count
     }))
 }
 

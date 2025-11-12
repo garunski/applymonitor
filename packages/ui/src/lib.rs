@@ -21,6 +21,15 @@ pub use job_form::JobForm;
 mod dashboard;
 pub use dashboard::DashboardContent;
 
+mod emails_list;
+pub use emails_list::EmailsList;
+
+mod email_slideout;
+pub use email_slideout::EmailSlideout;
+
+mod job_select_dialog;
+pub use job_select_dialog::JobSelectDialog;
+
 mod sidebar;
 pub use sidebar::{SidebarLayout, SidebarLayoutProps};
 

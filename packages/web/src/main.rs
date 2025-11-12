@@ -1,11 +1,11 @@
 use dioxus::prelude::*;
 use dioxus_free_icons::{
-    icons::bs_icons::{BsBriefcase, BsGear, BsHouse},
+    icons::bs_icons::{BsBriefcase, BsEnvelope, BsGear, BsHouse},
     Icon,
 };
 
 use ui::{use_auth_provider, SidebarLayout};
-use views::{Accounts, Blog, Dashboard, Home, Jobs, Login};
+use views::{Accounts, Blog, Dashboard, Emails, Home, Jobs, Login};
 
 mod views;
 
@@ -23,6 +23,8 @@ pub enum Route {
     Blog { id: i32 },
     #[route("/jobs")]
     Jobs {},
+    #[route("/emails")]
+    Emails {},
     #[route("/settings/accounts")]
     Accounts {},
 }
@@ -113,6 +115,18 @@ fn WebSidebar() -> Element {
                                 icon: BsBriefcase,
                             }
                             "Jobs"
+                        }
+                        Link {
+                            to: Route::Emails {},
+                            class: "group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold text-gray-700 dark:text-gray-300 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-gray-50 dark:hover:bg-gray-800",
+                            Icon {
+                                class: "h-6 w-6 shrink-0",
+                                width: 24,
+                                height: 24,
+                                fill: "currentColor",
+                                icon: BsEnvelope,
+                            }
+                            "Emails"
                         }
                         Link {
                             to: Route::Accounts {},

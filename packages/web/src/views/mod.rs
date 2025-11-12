@@ -7,6 +7,9 @@ pub use blog::Blog;
 mod dashboard;
 pub use dashboard::Dashboard;
 
+mod emails_view;
+pub use emails_view::Emails;
+
 mod jobs_view;
 pub use jobs_view::Jobs;
 

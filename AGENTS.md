@@ -268,3 +268,28 @@ Common occurrence: Every time you add a new component from the primitives librar
 Pattern: Shared components can't use router Link directly; they need to accept navigation as props or children.
 Lesson: For shared components, accept navigation items as children/props. Use router Link in platform-specific wrappers.
 Common occurrence: Any shared layout/navigation component that needs routing.
+
+5. Signal write() from &self methods
+Pattern: Writing to Signals from methods that take `&self` requires copying the Signal first.
+Lesson: Use `let mut signal = self.signal; *signal.write() = value;` instead of `*self.signal.write() = value;`
+Common occurrence: State management methods that update Signals (e.g., `select_email`, `clear_selected`).
+
+6. Conditional component rendering
+Pattern: Components returning `Element` (Option<VNode>) should use conditional rendering in rsx! rather than early returns.
+Lesson: Use `if let Some(...)` pattern in rsx! macro: `if let Some(data) = data { rsx! { ... } } else { rsx! { div {} } }`
+Common occurrence: Components that conditionally render based on state (e.g., slideouts, modals).
+
+7. Function parameter types
+Pattern: Helper functions taking `&str` should receive references, not owned Strings.
+Lesson: Pass `&date` not `date.clone()` when function signature expects `&str`.
+Common occurrence: Date formatting, string manipulation helpers.
+
+8. Clippy: and_then with Some
+Pattern: `Option.and_then(|x| Some(y))` is redundant.
+Lesson: Use `Option.map(|x| y)` instead when always returning Some.
+Common occurrence: Option transformations that always produce a value.
+
+9. D1 Database ID types
+Pattern: Cloudflare D1 does not support bigint types for IDs or query parameters.
+Lesson: Always use TEXT (UUID/GUID) for primary keys, never INTEGER or BIGINT. Use i32 (not i64) for LIMIT/OFFSET parameters in SQL queries.
+Common occurrence: Database migrations, SQL query parameters, ID generation.

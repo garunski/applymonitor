@@ -15,6 +15,7 @@ pub mod scroll_area;
 pub mod select;
 pub mod separator;
 pub mod sidebar_nav;
+pub mod simple_dropdown;
 pub mod statistics_card;
 pub mod toast;
 pub mod user_profile;

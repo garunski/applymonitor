@@ -4,7 +4,6 @@ use crate::components::button::{Button, ButtonVariant};
 use crate::components::dialog::{DialogContent, DialogDescription, DialogRoot, DialogTitle};
 use crate::components::input::Input;
 use crate::components::label::Label;
-use crate::components::select::{Select, SelectList, SelectOption, SelectTrigger, SelectValue};
 use crate::{
     services::jobs_service::{CreateJobRequest, Job, UpdateJobRequest},
     state::use_jobs,
@@ -13,10 +12,25 @@ use dioxus::prelude::*;
 
 /// Job form component for creating and editing jobs
 #[component]
-pub fn JobForm(open: Signal<bool>, job: Option<Job>) -> Element {
+pub fn JobForm(
+    open: Signal<bool>,
+    job: Option<Job>,
+    prefill_title: Option<String>,
+    prefill_company: Option<String>,
+) -> Element {
     let jobs_state = use_jobs();
-    let mut title = use_signal(|| job.as_ref().map(|j| j.title.clone()).unwrap_or_default());
-    let mut company = use_signal(|| job.as_ref().map(|j| j.company.clone()).unwrap_or_default());
+    let mut title = use_signal(|| {
+        prefill_title
+            .clone()
+            .or_else(|| job.as_ref().map(|j| j.title.clone()))
+            .unwrap_or_default()
+    });
+    let mut company = use_signal(|| {
+        prefill_company
+            .clone()
+            .or_else(|| job.as_ref().map(|j| j.company.clone()))
+            .unwrap_or_default()
+    });
     let mut location = use_signal(|| {
         job.as_ref()
             .and_then(|j| j.location.clone())
@@ -27,14 +41,12 @@ pub fn JobForm(open: Signal<bool>, job: Option<Job>) -> Element {
             .map(|j| j.status.clone())
             .unwrap_or_else(|| "open".to_string())
     });
-    let mut status_option = use_signal(|| Some(Some(status())));
-    use_effect(move || {
-        *status_option.write() = Some(Some(status()));
-    });
 
-    // Update form when job changes
+    // Update form when job or prefill changes
     use_effect({
         let job_clone = job.clone();
+        let prefill_title_clone = prefill_title.clone();
+        let prefill_company_clone = prefill_company.clone();
         move || {
             if let Some(j) = &job_clone {
                 *title.write() = j.title.clone();
@@ -42,8 +54,8 @@ pub fn JobForm(open: Signal<bool>, job: Option<Job>) -> Element {
                 *location.write() = j.location.clone().unwrap_or_default();
                 *status.write() = j.status.clone();
             } else {
-                *title.write() = String::new();
-                *company.write() = String::new();
+                *title.write() = prefill_title_clone.clone().unwrap_or_default();
+                *company.write() = prefill_company_clone.clone().unwrap_or_default();
                 *location.write() = String::new();
                 *status.write() = "open".to_string();
             }
@@ -77,7 +89,7 @@ pub fn JobForm(open: Signal<bool>, job: Option<Job>) -> Element {
                     }
                 }
                 form {
-                    class: "mt-4 space-y-4",
+                    class: "space-y-4",
                     onsubmit: move |e| {
                         e.prevent_default();
                         let title_val = title();
@@ -110,6 +122,7 @@ pub fn JobForm(open: Signal<bool>, job: Option<Job>) -> Element {
                         *open.write() = false;
                     },
                     div {
+                        class: "space-y-2",
                         Label {
                             html_for: "title",
                             "Title"
@@ -124,6 +137,7 @@ pub fn JobForm(open: Signal<bool>, job: Option<Job>) -> Element {
                         }
                     }
                     div {
+                        class: "space-y-2",
                         Label {
                             html_for: "company",
                             "Company"
@@ -138,6 +152,7 @@ pub fn JobForm(open: Signal<bool>, job: Option<Job>) -> Element {
                         }
                     }
                     div {
+                        class: "space-y-2",
                         Label {
                             html_for: "location",
                             "Location"
@@ -151,57 +166,7 @@ pub fn JobForm(open: Signal<bool>, job: Option<Job>) -> Element {
                         }
                     }
                     div {
-                        Label {
-                            html_for: "status",
-                            "Status"
-                        }
-                        Select {
-                            value: status_option,
-                            on_value_change: move |new_status: Option<String>| {
-                                if let Some(s) = new_status {
-                                    *status.write() = s;
-                                    *status_option.write() = Some(Some(status()));
-                                }
-                            },
-                            SelectTrigger {
-                                SelectValue {}
-                            }
-                            SelectList {
-                                SelectOption::<String> {
-                                    index: 0usize,
-                                    value: "open".to_string(),
-                                    text_value: "Open".to_string(),
-                                    "Open"
-                                }
-                                SelectOption::<String> {
-                                    index: 1usize,
-                                    value: "applied".to_string(),
-                                    text_value: "Applied".to_string(),
-                                    "Applied"
-                                }
-                                SelectOption::<String> {
-                                    index: 2usize,
-                                    value: "interviewing".to_string(),
-                                    text_value: "Interviewing".to_string(),
-                                    "Interviewing"
-                                }
-                                SelectOption::<String> {
-                                    index: 3usize,
-                                    value: "offer".to_string(),
-                                    text_value: "Offer".to_string(),
-                                    "Offer"
-                                }
-                                SelectOption::<String> {
-                                    index: 4usize,
-                                    value: "rejected".to_string(),
-                                    text_value: "Rejected".to_string(),
-                                    "Rejected"
-                                }
-                            }
-                        }
-                    }
-                    div {
-                        class: "flex justify-end space-x-2 pt-4",
+                        class: "flex justify-end gap-3 pt-4",
                         Button {
                             variant: ButtonVariant::Secondary,
                             onclick: move |_| *open.write() = false,
