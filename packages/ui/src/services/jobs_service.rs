@@ -10,10 +10,20 @@ pub struct Job {
     pub title: String,
     pub company: String,
     pub location: Option<String>,
-    pub status: String,
+    pub status_id: Option<i32>,
+    pub status_name: Option<String>,
     pub description: Option<String>,
     pub created_at: Option<String>,
     pub updated_at: Option<String>,
+}
+
+/// Job status struct
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+pub struct JobStatus {
+    pub id: i32,
+    pub name: String,
+    pub display_name: String,
+    pub description: Option<String>,
 }
 
 /// Request struct for creating a job
@@ -22,7 +32,7 @@ pub struct CreateJobRequest {
     pub title: String,
     pub company: String,
     pub location: Option<String>,
-    pub status: String,
+    pub status_id: Option<i32>,
 }
 
 /// Request struct for updating a job
@@ -31,7 +41,7 @@ pub struct UpdateJobRequest {
     pub title: String,
     pub company: String,
     pub location: Option<String>,
-    pub status: String,
+    pub status_id: Option<i32>,
 }
 
 /// Jobs API service
@@ -138,14 +148,14 @@ impl JobsService {
     }
 
     /// Fetch job details with related data (emails, comments, timeline)
-    pub async fn fetch_job_details(id: String) -> Result<JobDetails, ServiceError> {
+    pub async fn fetch_job_details(id: String) -> Result<JobDetailsApiResponse, ServiceError> {
         let url = format!("{}/jobs/{}?include=details", get_api_base_url(), id);
 
         let response = http_client::get(&url).await?;
         let status = response.status();
 
         if status == 200 {
-            http_client::json::<JobDetails>(response).await
+            http_client::json::<JobDetailsApiResponse>(response).await
         } else if status == 404 {
             Err(ServiceError::NotFound)
         } else if status == 401 {
@@ -181,6 +191,23 @@ impl JobsService {
             Err(ServiceError::Server(status, text))
         }
     }
+
+    /// Fetch all job statuses
+    pub async fn fetch_job_statuses() -> Result<Vec<JobStatus>, ServiceError> {
+        let url = format!("{}/job-statuses", get_api_base_url());
+
+        let response = http_client::get(&url).await?;
+        let status = response.status();
+
+        if status == 200 {
+            http_client::json::<Vec<JobStatus>>(response).await
+        } else if status == 401 {
+            Err(ServiceError::Unauthorized)
+        } else {
+            let text = http_client::text(response).await.unwrap_or_default();
+            Err(ServiceError::Server(status, text))
+        }
+    }
 }
 
 /// Email contact information
@@ -200,9 +227,17 @@ pub struct EmailContact {
 #[derive(Debug, Deserialize, Clone)]
 pub struct JobDetails {
     pub job: Job,
+    pub timeline_events: Vec<serde_json::Value>,
+}
+
+/// Full API response for job details (for deserialization)
+#[derive(Debug, Deserialize, Clone)]
+pub struct JobDetailsApiResponse {
+    pub job: Job,
     pub emails: Vec<serde_json::Value>,
     pub comments: Vec<serde_json::Value>,
     pub timeline_events: Vec<serde_json::Value>,
+    #[serde(default)]
     pub people: Vec<serde_json::Value>,
     #[serde(default)]
     pub contacts: Vec<EmailContact>,

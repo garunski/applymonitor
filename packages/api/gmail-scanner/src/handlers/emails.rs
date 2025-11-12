@@ -92,34 +92,49 @@ pub async fn assign_email_to_job(
         return Response::error("Email not found", 404);
     }
 
-    // If job_id is provided, link email to existing job
-    if let Some(job_id) = body.job_id {
-        // Verify job exists
-        let job_exists = db
-            .prepare("SELECT id FROM jobs WHERE id = ?")
-            .bind(&[job_id.clone().into()])?
-            .first::<Value>(None)
-            .await?;
+    // If job_id is Some, link email to existing job
+    // If job_id is None and create_job is None, unassign email from job
+    if body.create_job.is_none() {
+        if let Some(job_id) = body.job_id {
+            // Verify job exists
+            let job_exists = db
+                .prepare("SELECT id FROM jobs WHERE id = ?")
+                .bind(&[job_id.clone().into()])?
+                .first::<Value>(None)
+                .await?;
 
-        if job_exists.is_none() {
-            return Response::error("Job not found", 404);
+            if job_exists.is_none() {
+                return Response::error("Job not found", 404);
+            }
+
+            // Link email to job
+            db.prepare("UPDATE emails SET job_id = ? WHERE gmail_id = ? AND user_id = ?")
+                .bind(&[
+                    job_id.clone().into(),
+                    gmail_id.clone().into(),
+                    user_id.into(),
+                ])?
+                .run()
+                .await?;
+
+            return Response::from_json(&serde_json::json!({
+                "success": true,
+                "gmail_id": gmail_id,
+                "job_id": job_id
+            }));
+        } else {
+            // Unassign email from job (set job_id to NULL)
+            db.prepare("UPDATE emails SET job_id = NULL WHERE gmail_id = ? AND user_id = ?")
+                .bind(&[gmail_id.clone().into(), user_id.into()])?
+                .run()
+                .await?;
+
+            return Response::from_json(&serde_json::json!({
+                "success": true,
+                "gmail_id": gmail_id,
+                "job_id": null
+            }));
         }
-
-        // Link email to job
-        db.prepare("UPDATE emails SET job_id = ? WHERE gmail_id = ? AND user_id = ?")
-            .bind(&[
-                job_id.clone().into(),
-                gmail_id.clone().into(),
-                user_id.into(),
-            ])?
-            .run()
-            .await?;
-
-        return Response::from_json(&serde_json::json!({
-            "success": true,
-            "gmail_id": gmail_id,
-            "job_id": job_id
-        }));
     }
 
     // If create_job is provided, create new job

@@ -30,7 +30,15 @@ pub async fn get_job_details_data(
 
     // Get job
     let job_result = db
-        .prepare("SELECT * FROM jobs WHERE id = ?")
+        .prepare(
+            "SELECT 
+                j.*, 
+                j.status_id,
+                js.name as status_name
+            FROM jobs j
+            LEFT JOIN job_statuses js ON j.status_id = js.id
+            WHERE j.id = ?",
+        )
         .bind(&[id.clone().into()])?
         .first::<Value>(None)
         .await?;

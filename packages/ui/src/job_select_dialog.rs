@@ -27,12 +27,12 @@ pub fn JobSelectDialog(open: Signal<bool>, gmail_id: String) -> Element {
         *open_option.write() = Some(*open.read());
     });
 
-    // Filter to only show jobs with status "open"
+    // Filter to only show jobs with status_id 100 (open)
     let open_jobs: Vec<_> = jobs_state
         .jobs
         .read()
         .iter()
-        .filter(|j| j.status == "open")
+        .filter(|j| j.status_id == Some(100))
         .cloned()
         .collect();
 

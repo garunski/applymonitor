@@ -42,6 +42,8 @@ pub use comment_form::CommentForm;
 mod job_details;
 pub use job_details::JobDetails;
 
+mod job_details_components;
+
 mod email_contact_card;
 pub use email_contact_card::EmailContactCard;
 

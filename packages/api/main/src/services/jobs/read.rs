@@ -7,7 +7,15 @@ use worker::{D1Database, Response};
 /// List all jobs
 pub async fn list_jobs(db: &D1Database) -> Result<Response, worker::Error> {
     let result = db
-        .prepare("SELECT * FROM jobs ORDER BY created_at DESC")
+        .prepare(
+            "SELECT 
+                j.*, 
+                j.status_id,
+                js.name as status_name
+            FROM jobs j
+            LEFT JOIN job_statuses js ON j.status_id = js.id
+            ORDER BY j.created_at DESC",
+        )
         .all()
         .await?;
 
@@ -21,7 +29,15 @@ pub async fn list_jobs(db: &D1Database) -> Result<Response, worker::Error> {
 /// Get a single job by ID
 pub async fn get_job(db: &D1Database, id: String) -> Result<Response, worker::Error> {
     let result = db
-        .prepare("SELECT * FROM jobs WHERE id = ?")
+        .prepare(
+            "SELECT 
+                j.*, 
+                j.status_id,
+                js.name as status_name
+            FROM jobs j
+            LEFT JOIN job_statuses js ON j.status_id = js.id
+            WHERE j.id = ?",
+        )
         .bind(&[id.into()])?
         .first::<Value>(None)
         .await?;

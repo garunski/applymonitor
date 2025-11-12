@@ -4,106 +4,41 @@ use crate::components::alert_dialog::{
     AlertDialogAction, AlertDialogActions, AlertDialogCancel, AlertDialogContent,
     AlertDialogDescription, AlertDialogRoot, AlertDialogTitle,
 };
-use crate::components::button::{Button, ButtonVariant};
 use crate::components::dropdown_menu::{
     DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 };
 use crate::components::statistics_card::StatisticsCard;
 use crate::job_form::JobForm;
-use crate::services::gmail_scanner_service::{GmailScannerService, GmailStatus};
 use crate::services::jobs_service::Job;
 use crate::state::use_jobs;
 use dioxus::prelude::*;
 use dioxus_free_icons::{
-    icons::bs_icons::{BsBarChart, BsBriefcase, BsEnvelope, BsFileText, BsTrophy, BsXCircle},
+    icons::bs_icons::{BsBarChart, BsBriefcase, BsFileText, BsTrophy, BsXCircle},
     Icon,
 };
+use dioxus_router::Link;
 use std::rc::Rc;
 
 /// Dashboard component showing job statistics and recent applications
 #[component]
 pub fn DashboardContent() -> Element {
     let jobs_state = use_jobs();
-    let mut show_create_dialog = use_signal(|| false);
     let show_edit_dialog = use_signal(|| false);
     let job_to_edit = use_signal(|| None::<Job>);
     let mut show_delete_dialog = use_signal(|| Some(false));
     let mut job_to_delete = use_signal(|| None::<String>);
-
-    // Gmail scanning state
-    let scanning = use_signal(|| false);
-    let scan_error = use_signal(|| None::<String>);
-    let scan_success = use_signal(|| None::<usize>);
-    let gmail_status = use_signal(|| None::<GmailStatus>);
 
     // Fetch jobs on mount
     use_effect(move || {
         jobs_state.fetch_jobs();
     });
 
-    // Fetch Gmail connection status on mount
-    use_effect(move || {
-        let mut status = gmail_status;
-        spawn(async move {
-            match GmailScannerService::get_scan_status().await {
-                Ok(status_data) => {
-                    *status.write() = Some(status_data);
-                }
-                Err(_) => {
-                    *status.write() = None;
-                }
-            }
-        });
-    });
-
-    let gmail_connected = gmail_status
-        .read()
-        .as_ref()
-        .map(|s| s.connected)
-        .unwrap_or(false);
-
-    let handle_scan = {
-        let mut scanning_state = scanning;
-        let mut error_state = scan_error;
-        let mut success_state = scan_success;
-
-        move |_| {
-            if *scanning_state.read() {
-                return;
-            }
-
-            *scanning_state.write() = true;
-            *error_state.write() = None;
-            *success_state.write() = None;
-
-            let mut scanning_inner = scanning_state;
-            let mut error_inner = error_state;
-            let mut success_inner = success_state;
-
-            spawn(async move {
-                match GmailScannerService::scan_emails(None, None).await {
-                    Ok(response) => {
-                        *success_inner.write() = Some(response.emails_found);
-                        *error_inner.write() = None;
-                        // Refresh jobs after successful scan
-                        jobs_state.fetch_jobs();
-                    }
-                    Err(e) => {
-                        *error_inner.write() = Some(format!("{}", e));
-                        *success_inner.write() = None;
-                    }
-                }
-                *scanning_inner.write() = false;
-            });
-        }
-    };
-
     let jobs = jobs_state.jobs.read().clone();
     let total_jobs = jobs.len();
-    let applied_count = jobs.iter().filter(|j| j.status == "applied").count();
-    let interviewing_count = jobs.iter().filter(|j| j.status == "interviewing").count();
-    let offer_count = jobs.iter().filter(|j| j.status == "offer").count();
-    let rejected_count = jobs.iter().filter(|j| j.status == "rejected").count();
+    let applied_count = jobs.iter().filter(|j| j.status_id == Some(200)).count();
+    let interviewing_count = jobs.iter().filter(|j| j.status_id == Some(300)).count();
+    let offer_count = jobs.iter().filter(|j| j.status_id == Some(400)).count();
+    let rejected_count = jobs.iter().filter(|j| j.status_id == Some(500)).count();
     let recent_jobs: Vec<Job> = jobs.iter().take(5).cloned().collect();
 
     rsx! {
@@ -111,90 +46,14 @@ pub fn DashboardContent() -> Element {
             class: "px-4 sm:px-6 lg:px-8 py-6",
             // Header
             div {
-                class: "sm:flex sm:items-center sm:justify-between mb-6",
-                div {
-                    h1 {
-                        class: "text-3xl font-bold text-gray-900 dark:text-white",
-                        "Dashboard"
-                    }
-                    p {
-                        class: "mt-2 text-sm text-gray-600 dark:text-gray-400",
-                        "Overview of your job applications"
-                    }
+                class: "mb-6",
+                h1 {
+                    class: "text-3xl font-bold text-gray-900 dark:text-white",
+                    "Dashboard"
                 }
-                div {
-                    class: "mt-4 sm:mt-0 flex gap-3",
-                    if gmail_connected {
-                        Button {
-                            variant: ButtonVariant::Ghost,
-                            class: if *scanning.read() {
-                                "flex items-center justify-center gap-2 opacity-50 cursor-not-allowed"
-                            } else {
-                                "flex items-center justify-center gap-2"
-                            },
-                            onclick: handle_scan,
-                            Icon {
-                                class: "w-5 h-5",
-                                width: 20,
-                                height: 20,
-                                fill: "currentColor",
-                                icon: BsEnvelope,
-                            }
-                            if *scanning.read() {
-                                "Scanning..."
-                            } else {
-                                "Scan Gmail"
-                            }
-                        }
-                    }
-                    Button {
-                        variant: ButtonVariant::Primary,
-                        onclick: move |_| *show_create_dialog.write() = true,
-                        "Add Job"
-                    }
-                }
-            }
-
-            // Gmail scan messages
-            if let Some(error) = scan_error.read().as_ref() {
-                div {
-                    class: "mb-6 rounded-md bg-red-50 dark:bg-red-900/20 p-4",
-                    div {
-                        class: "flex",
-                        div {
-                            class: "ml-3",
-                            h3 {
-                                class: "text-sm font-medium text-red-800 dark:text-red-200",
-                                "Scan Error"
-                            }
-                            div {
-                                class: "mt-2 text-sm text-red-700 dark:text-red-300",
-                                {error.clone()}
-                            }
-                        }
-                    }
-                }
-            }
-            if let Some(count) = scan_success.read().as_ref() {
-                div {
-                    class: "mb-6 rounded-md bg-green-50 dark:bg-green-900/20 p-4",
-                    div {
-                        class: "flex",
-                        div {
-                            class: "ml-3",
-                            h3 {
-                                class: "text-sm font-medium text-green-800 dark:text-green-200",
-                                "Scan Complete"
-                            }
-                            div {
-                                class: "mt-2 text-sm text-green-700 dark:text-green-300",
-                                {
-                                    let email_text = if *count == 1 { "email" } else { "emails" };
-                                    format!("Found {} {} in your Gmail.", count, email_text)
-                                }
-                            }
-                        }
-                    }
+                p {
+                    class: "mt-2 text-sm text-gray-600 dark:text-gray-400",
+                    "Overview of your job applications"
                 }
             }
 
@@ -339,10 +198,16 @@ pub fn DashboardContent() -> Element {
                                             class: "min-w-0 flex-auto",
                                             p {
                                                 class: "text-sm/6 font-semibold text-gray-900 dark:text-white",
-                                                a {
-                                                    href: "#",
-                                                    class: "hover:underline",
-                                                    {job.title.clone()}
+                                                if let Some(ref job_id) = job.id {
+                                                    Link {
+                                                        to: format!("/jobs/{}", job_id),
+                                                        class: "hover:underline",
+                                                        {job.title.clone()}
+                                                    }
+                                                } else {
+                                                    span {
+                                                        {job.title.clone()}
+                                                    }
                                                 }
                                             }
                                             p {
@@ -365,8 +230,7 @@ pub fn DashboardContent() -> Element {
                                             class: "hidden sm:flex sm:flex-col sm:items-end",
                                             p {
                                                 class: "text-sm/6 text-gray-900 dark:text-white",
-                                                {job.status.chars().next().map(|c| c.to_uppercase().collect::<String>()).unwrap_or_default()}
-                                                {job.status.chars().skip(1).collect::<String>()}
+                                                {job.status_name.clone().unwrap_or_else(|| "Unknown".to_string())}
                                             }
                                         }
                                         // Dropdown menu
@@ -434,14 +298,7 @@ pub fn DashboardContent() -> Element {
                 }
             }
 
-            // Create/Edit job dialog
-            JobForm {
-                open: show_create_dialog,
-                job: None,
-                prefill_title: None,
-                prefill_company: None,
-                gmail_id: None,
-            }
+            // Edit job dialog
             JobForm {
                 open: show_edit_dialog,
                 job: job_to_edit.read().clone(),

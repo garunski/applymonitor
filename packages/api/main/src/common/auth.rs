@@ -17,8 +17,8 @@ pub fn get_session_cookie(req: &Request) -> Option<String> {
 }
 
 pub async fn require_auth(req: &Request, env: &Env) -> Result<String> {
-    let session_cookie = get_session_cookie(req)
-        .ok_or_else(|| anyhow!("No session cookie found"))?;
+    let session_cookie =
+        get_session_cookie(req).ok_or_else(|| anyhow!("No session cookie found"))?;
 
     let signing_key = env
         .secret("SESSION_SIGNING_KEY")

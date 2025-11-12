@@ -18,6 +18,6 @@ pub use details::get_job_details_data;
 pub use people::extract_people_from_emails;
 pub use read::{get_job, list_jobs};
 pub use timeline::build_timeline_events;
-pub use types::Job;
+pub use types::{Job, JobStatus};
 pub use update::update_job;
 pub use utils::normalize_job_id;

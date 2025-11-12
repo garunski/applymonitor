@@ -1,41 +1,67 @@
 //! Job details component
 
 use crate::comment_form::CommentForm;
+use crate::components::status_change_dialog::StatusChangeDialog;
 use crate::email_contact_card::EmailContactCard;
 use crate::email_contact_slideout::EmailContactSlideout;
-use crate::state::{use_email_contacts_provider, use_jobs};
+use crate::job_details_components::{DetailsTab, EmailsTab, JobDetailsHeader};
+use crate::state::{use_comments_provider, use_email_contacts_provider, use_emails, use_jobs};
 use crate::timeline::Timeline;
 use dioxus::prelude::*;
+
+#[derive(PartialEq, Clone)]
+enum DetailsTabType {
+    Details,
+    Emails,
+}
 
 /// Job details component
 #[component]
 pub fn JobDetails(job_id: String) -> Element {
     let jobs_state = use_jobs();
     let email_contacts_state = use_email_contacts_provider();
-    let mut description = use_signal(String::new);
-    let mut is_editing_description = use_signal(|| false);
-    let saving_description = use_signal(|| false);
+    let comments_state = use_comments_provider();
+    let emails_state = use_emails();
+
+    // Editing state for each field
+    let editing_title = use_signal(|| false);
+    let editing_company = use_signal(|| false);
+    let editing_location = use_signal(|| false);
+    let editing_status = use_signal(|| false);
+    let editing_description = use_signal(|| false);
+
+    // Edit values
+    let edit_title_value = use_signal(String::new);
+    let edit_company_value = use_signal(String::new);
+    let edit_location_value = use_signal(String::new);
+    let edit_status_value = use_signal(String::new);
+    let edit_description_value = use_signal(String::new);
+
+    // Tab state
+    let active_tab = use_signal(|| DetailsTabType::Details);
+
+    // Dialog state
+    let show_dialog = use_signal(|| false);
+    let selected_status_id = use_signal(|| None::<i32>);
+
+    // Fetch job statuses on mount
+    use_effect({
+        let jobs_state_statuses = jobs_state;
+        move || {
+            jobs_state_statuses.fetch_job_statuses();
+        }
+    });
 
     // Fetch job details on mount
     use_effect({
         let job_id_clone = job_id.clone();
         let jobs_state_fetch = jobs_state;
+        let contacts_state = email_contacts_state;
+        let emails = emails_state;
+        let comments = comments_state;
         move || {
             let job_id_for_fetch = job_id_clone.clone();
-            jobs_state_fetch.fetch_job_details(job_id_for_fetch);
-        }
-    });
-
-    // Update description and contacts when job details load
-    use_effect({
-        let jobs_state_desc = jobs_state;
-        let email_contacts_state_effect = email_contacts_state;
-        let mut desc_signal = description;
-        move || {
-            if let Some(details) = jobs_state_desc.selected_job.read().as_ref() {
-                *desc_signal.write() = details.job.description.clone().unwrap_or_default();
-                email_contacts_state_effect.set_contacts(details.contacts.clone());
-            }
+            jobs_state_fetch.fetch_job_details(job_id_for_fetch, contacts_state, emails, comments);
         }
     });
 
@@ -57,27 +83,43 @@ pub fn JobDetails(job_id: String) -> Element {
     }
 
     if let Some(details) = job_details {
-        let job = &details.job;
-        let timeline_events = &details.timeline_events;
-        let contacts = &details.contacts;
+        let job = details.job.clone();
+        let timeline_events = details.timeline_events.clone();
+        let contacts = email_contacts_state.contacts.read().clone();
+        let emails = emails_state.emails.read().clone();
+        let statuses = jobs_state.job_statuses.read().clone();
+        let current_status_id = job.status_id;
+
+        // Find current and new status for dialog
+        let current_status = statuses
+            .iter()
+            .find(|s| s.id == current_status_id.unwrap_or(0))
+            .cloned();
+        let new_status =
+            selected_status_id().and_then(|id| statuses.iter().find(|s| s.id == id).cloned());
 
         rsx! {
             div {
                 class: "px-4 sm:px-6 lg:px-8 py-6",
-                // Header
-                div {
-                    class: "mb-6",
-                    h1 {
-                        class: "text-2xl font-semibold text-gray-900 dark:text-white",
-                        {job.title.clone()}
-                    }
-                    p {
-                        class: "mt-1 text-sm text-gray-500 dark:text-gray-400",
-                        {job.company.clone()}
-                        if let Some(ref loc) = job.location {
-                            " • {loc}"
-                        }
-                    }
+                JobDetailsHeader {
+                    job_id: job_id.clone(),
+                    title: job.title.clone(),
+                    company: job.company.clone(),
+                    location: job.location.clone(),
+                    status_id: current_status_id,
+                    statuses: statuses.clone(),
+                    on_status_click: move |id| {
+                        let mut selected = selected_status_id;
+                        *selected.write() = Some(id);
+                        let mut show = show_dialog;
+                        *show.write() = true;
+                    },
+                    editing_title,
+                    editing_company,
+                    editing_location,
+                    edit_title_value,
+                    edit_company_value,
+                    edit_location_value,
                 }
 
                 // Two-column layout (stacked on mobile)
@@ -91,7 +133,7 @@ pub fn JobDetails(job_id: String) -> Element {
                             "Timeline"
                         }
                         Timeline {
-                            events: timeline_events.clone(),
+                            events: timeline_events,
                         }
                         div {
                             class: "mt-6",
@@ -101,152 +143,61 @@ pub fn JobDetails(job_id: String) -> Element {
                         }
                     }
 
-                    // Right column: Job details + People
+                    // Right column: Job details + Emails
                     div {
                         class: "space-y-6",
-                        // Job details card
+                        // Details/Emails card with tabs
                         div {
                             class: "rounded-lg bg-white dark:bg-gray-800 p-5 ring-1 ring-inset ring-gray-200 dark:ring-white/15",
-                            h2 {
-                                class: "text-lg font-semibold text-gray-900 dark:text-white mb-4",
-                                "Details"
-                            }
+                            // Tabs
                             div {
-                                class: "space-y-4",
-                                div {
-                                    class: "flex justify-between",
-                                    span {
-                                        class: "text-sm font-medium text-gray-500 dark:text-gray-400",
-                                        "Status"
+                                class: "mb-4 border-b border-gray-200 dark:border-gray-700",
+                                nav {
+                                    class: "-mb-px flex space-x-8",
+                                    button {
+                                        class: if *active_tab.read() == DetailsTabType::Details {
+                                            "border-indigo-500 text-indigo-600 dark:text-indigo-400 whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium"
+                                        } else {
+                                            "border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-300 whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium"
+                                        },
+                                        onclick: move |_| {
+                                            let mut tab = active_tab;
+                                            *tab.write() = DetailsTabType::Details;
+                                        },
+                                        "Details"
                                     }
-                                    span {
-                                        class: "text-sm text-gray-900 dark:text-white",
-                                        {job.status.chars().next().map(|c| c.to_uppercase().collect::<String>()).unwrap_or_default()}
-                                        {job.status.chars().skip(1).collect::<String>()}
-                                    }
-                                }
-                                if let Some(ref created_at) = job.created_at {
-                                    div {
-                                        class: "flex justify-between",
-                                        span {
-                                            class: "text-sm font-medium text-gray-500 dark:text-gray-400",
-                                            "Created"
-                                        }
-                                        span {
-                                            class: "text-sm text-gray-900 dark:text-white",
-                                            {format_date(created_at)}
-                                        }
-                                    }
-                                }
-                                if let Some(ref updated_at) = job.updated_at {
-                                    div {
-                                        class: "flex justify-between",
-                                        span {
-                                            class: "text-sm font-medium text-gray-500 dark:text-gray-400",
-                                            "Updated"
-                                        }
-                                        span {
-                                            class: "text-sm text-gray-900 dark:text-white",
-                                            {format_date(updated_at)}
-                                        }
+                                    button {
+                                        class: if *active_tab.read() == DetailsTabType::Emails {
+                                            "border-indigo-500 text-indigo-600 dark:text-indigo-400 whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium"
+                                        } else {
+                                            "border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-300 whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium"
+                                        },
+                                        onclick: move |_| {
+                                            let mut tab = active_tab;
+                                            *tab.write() = DetailsTabType::Emails;
+                                        },
+                                        "Emails"
                                     }
                                 }
                             }
 
-                            // Description section
-                            div {
-                                class: "mt-4 pt-4 border-t border-gray-200 dark:border-gray-700",
-                                div {
-                                    class: "flex justify-between items-center mb-2",
-                                    label {
-                                        class: "text-sm font-medium text-gray-500 dark:text-gray-400",
-                                        "Description"
-                                    }
-                                    if !is_editing_description() {
-                                        button {
-                                            class: "text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300",
-                                            onclick: move |_| *is_editing_description.write() = true,
-                                            "Edit"
-                                        }
-                                    }
+                            // Tab content
+                            if *active_tab.read() == DetailsTabType::Details {
+                                DetailsTab {
+                                    job_id: job_id.clone(),
+                                    status_id: job.status_id,
+                                    created_at: job.created_at.clone(),
+                                    updated_at: job.updated_at.clone(),
+                                    description: job.description.clone(),
+                                    editing_status,
+                                    editing_description,
+                                    edit_status_value,
+                                    edit_description_value,
                                 }
-                                if is_editing_description() {
-                                    div {
-                                        class: "space-y-2",
-                                        textarea {
-                                            class: "block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm",
-                                            rows: "4",
-                                            value: "{description}",
-                                            oninput: move |e: Event<FormData>| *description.write() = e.value(),
-                                        }
-                                        div {
-                                            class: "flex justify-end gap-2",
-                                            button {
-                                                class: "text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white",
-                                                onclick: {
-                                                    let mut is_editing = is_editing_description;
-                                                    let mut desc = description;
-                                                    let jobs_state_clone = jobs_state;
-                                                    move |_| {
-                                                        *is_editing.write() = false;
-                                                        // Reset to original value
-                                                        if let Some(details) = jobs_state_clone.selected_job.read().as_ref() {
-                                                            *desc.write() = details.job.description.clone().unwrap_or_default();
-                                                        }
-                                                    }
-                                                },
-                                                "Cancel"
-                                            }
-                                            button {
-                                                class: "text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300",
-                                                onclick: {
-                                                    let job_id_clone = job_id.clone();
-                                                    let jobs_state_clone = jobs_state;
-                                                    let is_editing = is_editing_description;
-                                                    let saving = saving_description;
-                                                    let desc_signal = description;
-
-                                                    move |_| {
-                                                        let desc_value = desc_signal().trim().to_string();
-                                                        let desc_opt = if desc_value.is_empty() {
-                                                            None
-                                                        } else {
-                                                            Some(desc_value)
-                                                        };
-
-                                                        let job_id_for_update = job_id_clone.clone();
-                                                        let mut saving_clone = saving;
-                                                        let mut is_editing_clone = is_editing;
-
-                                                        spawn(async move {
-                                                            *saving_clone.write() = true;
-                                                            jobs_state_clone.update_job_description(job_id_for_update, desc_opt);
-                                                            *saving_clone.write() = false;
-                                                            *is_editing_clone.write() = false;
-                                                        });
-                                                    }
-                                                },
-                                                disabled: saving_description(),
-                                                if saving_description() {
-                                                    "Saving..."
-                                                } else {
-                                                    "Save"
-                                                }
-                                            }
-                                        }
-                                    }
-                                } else {
-                                    if description().is_empty() {
-                                        p {
-                                            class: "text-sm text-gray-400 dark:text-gray-500 italic",
-                                            "No description"
-                                        }
-                                    } else {
-                                        p {
-                                            class: "text-sm text-gray-900 dark:text-white whitespace-pre-wrap",
-                                            {description()}
-                                        }
-                                    }
+                            } else {
+                                EmailsTab {
+                                    job_id: job_id.clone(),
+                                    emails,
                                 }
                             }
                         }
@@ -281,6 +232,31 @@ pub fn JobDetails(job_id: String) -> Element {
 
             // Email contact slideout
             EmailContactSlideout {}
+
+            // Status change dialog
+            if *show_dialog.read() {
+                if let (Some(current), Some(new)) = (current_status, new_status) {
+                    StatusChangeDialog {
+                        current_status: current.clone(),
+                        new_status: new.clone(),
+                        on_confirm: move |_| {
+                            if let Some(new_id) = selected_status_id() {
+                                jobs_state.update_job_status(job_id.clone(), new_id);
+                            }
+                            let mut show = show_dialog;
+                            *show.write() = false;
+                            let mut selected = selected_status_id;
+                            *selected.write() = None;
+                        },
+                        on_cancel: move |_| {
+                            let mut show = show_dialog;
+                            *show.write() = false;
+                            let mut selected = selected_status_id;
+                            *selected.write() = None;
+                        },
+                    }
+                }
+            }
         }
     } else {
         rsx! {
@@ -295,13 +271,5 @@ pub fn JobDetails(job_id: String) -> Element {
                 }
             }
         }
-    }
-}
-
-fn format_date(date_str: &str) -> String {
-    if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(date_str) {
-        dt.format("%B %d, %Y").to_string()
-    } else {
-        date_str.to_string()
     }
 }

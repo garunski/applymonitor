@@ -7,7 +7,7 @@ mod types;
 
 use common::auth::require_auth;
 use common::cors::get_cors;
-use endpoints::{auth, email_contacts, health, job_comments, jobs, root};
+use endpoints::{auth, email_contacts, health, job_comments, job_statuses, jobs, root};
 
 #[event(fetch)]
 async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
@@ -29,6 +29,7 @@ async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
             | ("/auth/login/local", Method::Post)
             | ("/auth/password-reset/request", Method::Post)
             | ("/auth/password-reset/confirm", Method::Post)
+            | ("/job-statuses", Method::Get)
     );
 
     // OPTIONS requests (CORS preflight) should always be allowed through without authentication
@@ -132,6 +133,11 @@ async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
         })
         .options("/jobs", |_, _| Response::ok(""))
         .options("/jobs/:id", |_, _| Response::ok(""))
+        // Job statuses routes
+        .get_async("/job-statuses", |req, ctx| async move {
+            job_statuses::handler(req, ctx).await
+        })
+        .options("/job-statuses", |_, _| Response::ok(""))
         // Job comments routes
         .get_async("/jobs/:id/comments", |req, ctx| async move {
             job_comments::handler(req, ctx).await

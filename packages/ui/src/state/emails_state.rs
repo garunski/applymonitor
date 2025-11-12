@@ -128,7 +128,7 @@ impl EmailsState {
                     title: create_job.title,
                     company: create_job.company,
                     location: create_job.location,
-                    status: Some(create_job.status),
+                    status_id: create_job.status_id,
                 }),
             };
 
@@ -172,5 +172,11 @@ impl EmailsState {
 
             *loading.write() = false;
         });
+    }
+
+    /// Set emails (used when loading from job details)
+    pub fn set_emails(&self, new_emails: Vec<StoredEmail>) {
+        let mut emails = self.emails;
+        *emails.write() = new_emails;
     }
 }

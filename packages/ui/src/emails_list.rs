@@ -1,6 +1,8 @@
 //! Emails list component
 
+use crate::components::button::{Button, ButtonVariant};
 use crate::email_slideout::EmailSlideout;
+use crate::services::gmail_scanner_service::GmailScannerService;
 use crate::state::use_emails;
 use crate::state::use_emails_provider;
 use dioxus::prelude::*;
@@ -10,17 +12,49 @@ use dioxus::prelude::*;
 pub fn EmailsList() -> Element {
     use_emails_provider();
     let emails_state = use_emails();
+    let scanning = use_signal(|| false);
+    let scan_error = use_signal(|| None::<String>);
 
     // Fetch emails on mount
     use_effect(move || {
         emails_state.fetch_emails(Some(100), Some(0));
     });
 
+    let handle_scan = {
+        let scanning_signal = scanning;
+        let error_signal = scan_error;
+        let emails = emails_state;
+
+        move |_| {
+            let mut scanning_clone = scanning_signal;
+            let mut error_clone = error_signal;
+            let emails_clone = emails;
+
+            spawn(async move {
+                *scanning_clone.write() = true;
+                *error_clone.write() = None;
+
+                match GmailScannerService::scan_emails(None, None).await {
+                    Ok(_) => {
+                        // Refresh emails list after successful scan
+                        emails_clone.fetch_emails(Some(100), Some(0));
+                        *error_clone.write() = None;
+                    }
+                    Err(e) => {
+                        *error_clone.write() = Some(format!("Failed to scan Gmail: {}", e));
+                    }
+                }
+
+                *scanning_clone.write() = false;
+            });
+        }
+    };
+
     rsx! {
         div {
             class: "px-4 sm:px-6 lg:px-8 py-6",
             div {
-                class: "sm:flex sm:items-center",
+                class: "sm:flex sm:items-center sm:justify-between",
                 div {
                     class: "sm:flex-auto",
                     h1 {
@@ -30,6 +64,30 @@ pub fn EmailsList() -> Element {
                     p {
                         class: "mt-2 text-sm text-gray-700 dark:text-gray-300",
                         "Scanned emails from your Gmail account."
+                    }
+                }
+                div {
+                    class: "mt-4 sm:ml-16 sm:mt-0 sm:flex-none",
+                    Button {
+                        variant: ButtonVariant::Primary,
+                        onclick: handle_scan,
+                        disabled: scanning(),
+                        if scanning() {
+                            "Scanning..."
+                        } else {
+                            "Scan Gmail"
+                        }
+                    }
+                }
+            }
+
+            // Scan error message
+            if let Some(err) = scan_error.read().as_ref() {
+                div {
+                    class: "mt-4 rounded-md bg-red-50 dark:bg-red-900/20 p-4",
+                    p {
+                        class: "text-sm text-red-800 dark:text-red-200",
+                        {err.clone()}
                     }
                 }
             }

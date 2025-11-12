@@ -215,7 +215,7 @@ fn TimelineEvent(event: Value, is_last: bool) -> Element {
                         class: "flex-auto py-0.5 text-xs/5 text-gray-500 dark:text-gray-400",
                         span {
                             class: "font-medium text-gray-900 dark:text-white",
-                            "System"
+                            "Saved"
                         }
                         " {display_text}"
                     }

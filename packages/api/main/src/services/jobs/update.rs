@@ -1,5 +1,6 @@
 //! Job update operations
 
+use crate::services::job_statuses::get_status_by_id;
 use crate::services::jobs::{normalize_job_id, Job};
 use serde_json::Value;
 use worker::{D1Database, Request, Response};
@@ -48,16 +49,22 @@ pub async fn update_job(
             return Response::error("Title and company are required", 400);
         }
 
+        // Validate status_id if provided
+        let status_id = job.status_id.unwrap_or(100); // Default to 100 (open)
+        if get_status_by_id(db, status_id).await?.is_none() {
+            return Response::error("Invalid status_id", 400);
+        }
+
         match (&job.location, &job.description) {
             (Some(location), Some(description)) => {
                 db.prepare(
-                    "UPDATE jobs SET title = ?, company = ?, location = ?, status = ?, description = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?"
+                    "UPDATE jobs SET title = ?, company = ?, location = ?, status_id = ?, description = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?"
                 )
                 .bind(&[
                     job.title.into(),
                     job.company.into(),
                     location.as_str().into(),
-                    job.status.into(),
+                    status_id.into(),
                     description.as_str().into(),
                     id.clone().into(),
                 ])?
@@ -66,13 +73,13 @@ pub async fn update_job(
             }
             (Some(location), None) => {
                 db.prepare(
-                    "UPDATE jobs SET title = ?, company = ?, location = ?, status = ?, description = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?"
+                    "UPDATE jobs SET title = ?, company = ?, location = ?, status_id = ?, description = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?"
                 )
                 .bind(&[
                     job.title.into(),
                     job.company.into(),
                     location.as_str().into(),
-                    job.status.into(),
+                    status_id.into(),
                     id.clone().into(),
                 ])?
                 .run()
@@ -80,12 +87,12 @@ pub async fn update_job(
             }
             (None, Some(description)) => {
                 db.prepare(
-                    "UPDATE jobs SET title = ?, company = ?, location = NULL, status = ?, description = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?"
+                    "UPDATE jobs SET title = ?, company = ?, location = NULL, status_id = ?, description = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?"
                 )
                 .bind(&[
                     job.title.into(),
                     job.company.into(),
-                    job.status.into(),
+                    status_id.into(),
                     description.as_str().into(),
                     id.clone().into(),
                 ])?
@@ -94,12 +101,12 @@ pub async fn update_job(
             }
             (None, None) => {
                 db.prepare(
-                    "UPDATE jobs SET title = ?, company = ?, location = NULL, status = ?, description = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?"
+                    "UPDATE jobs SET title = ?, company = ?, location = NULL, status_id = ?, description = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?"
                 )
                 .bind(&[
                     job.title.into(),
                     job.company.into(),
-                    job.status.into(),
+                    status_id.into(),
                     id.clone().into(),
                 ])?
                 .run()
@@ -109,7 +116,15 @@ pub async fn update_job(
     }
 
     let result = db
-        .prepare("SELECT * FROM jobs WHERE id = ?")
+        .prepare(
+            "SELECT 
+                j.*, 
+                j.status_id,
+                js.name as status_name
+            FROM jobs j
+            LEFT JOIN job_statuses js ON j.status_id = js.id
+            WHERE j.id = ?",
+        )
         .bind(&[id.into()])?
         .first::<Value>(None)
         .await?;

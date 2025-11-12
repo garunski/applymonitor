@@ -18,5 +18,7 @@ pub mod separator;
 pub mod sidebar_nav;
 pub mod simple_dropdown;
 pub mod statistics_card;
+pub mod status_change_dialog;
+pub mod status_stepper;
 pub mod toast;
 pub mod user_profile;

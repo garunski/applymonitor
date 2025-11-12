@@ -95,8 +95,7 @@ fn matches_pattern_impl(pattern: &str, domain: &str) -> bool {
             if prefix.is_empty() {
                 // Pattern: "*suffix" (e.g., "*.greenhouse.io")
                 // Match if domain ends with suffix OR if domain equals suffix without leading dot
-                if suffix.starts_with('.') {
-                    let suffix_without_dot = &suffix[1..];
+                if let Some(suffix_without_dot) = suffix.strip_prefix('.') {
                     return domain.ends_with(suffix) || domain == suffix_without_dot;
                 }
                 return domain.ends_with(suffix);

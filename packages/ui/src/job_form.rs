@@ -37,10 +37,14 @@ pub fn JobForm(
             .and_then(|j| j.location.clone())
             .unwrap_or_default()
     });
-    let mut status = use_signal(|| {
-        job.as_ref()
-            .map(|j| j.status.clone())
-            .unwrap_or_else(|| "open".to_string())
+    let mut status_id = use_signal(|| job.as_ref().and_then(|j| j.status_id).unwrap_or(100));
+
+    // Fetch statuses on mount
+    use_effect({
+        let jobs_state_statuses = jobs_state;
+        move || {
+            jobs_state_statuses.fetch_job_statuses();
+        }
     });
 
     // Update form when job or prefill changes
@@ -53,12 +57,12 @@ pub fn JobForm(
                 *title.write() = j.title.clone();
                 *company.write() = j.company.clone();
                 *location.write() = j.location.clone().unwrap_or_default();
-                *status.write() = j.status.clone();
+                *status_id.write() = j.status_id.unwrap_or(100);
             } else {
                 *title.write() = prefill_title_clone.clone().unwrap_or_default();
                 *company.write() = prefill_company_clone.clone().unwrap_or_default();
                 *location.write() = String::new();
-                *status.write() = "open".to_string();
+                *status_id.write() = 100;
             }
         }
     });
@@ -96,7 +100,7 @@ pub fn JobForm(
                         let title_val = title();
                         let company_val = company();
                         let location_val = if location().is_empty() { None } else { Some(location()) };
-                        let status_val = status();
+                        let status_id_val = status_id();
 
                         if title_val.is_empty() || company_val.is_empty() {
                             return;
@@ -107,7 +111,7 @@ pub fn JobForm(
                                 title: title_val,
                                 company: company_val,
                                 location: location_val,
-                                status: status_val,
+                                status_id: Some(status_id_val),
                             };
                             jobs_state.update_job(id, update_req);
                         } else {
@@ -123,7 +127,7 @@ pub fn JobForm(
                                         title: title_val,
                                         company: company_val,
                                         location: location_val,
-                                        status: Some(status_val),
+                                        status_id: Some(status_id_val),
                                     };
                                     let assign_req = crate::services::emails_service::AssignJobRequest {
                                         job_id: None,
@@ -153,7 +157,7 @@ pub fn JobForm(
                                         title: title_val,
                                         company: company_val,
                                         location: location_val,
-                                        status: status_val,
+                                        status_id: Some(status_id_val),
                                     };
 
                                     match crate::services::jobs_service::JobsService::create_job(create_req).await {

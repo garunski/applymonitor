@@ -1,5 +1,6 @@
 //! Job creation
 
+use crate::services::job_statuses::get_status_by_id;
 use crate::services::jobs::Job;
 use crate::services::password;
 use worker::{D1Database, Request, Response};
@@ -12,20 +13,26 @@ pub async fn create_job(db: &D1Database, mut req: Request) -> Result<Response, w
         return Response::error("Title and company are required", 400);
     }
 
+    // Validate status_id if provided, otherwise default to 100 (open)
+    let status_id = job.status_id.unwrap_or(100);
+    if get_status_by_id(db, status_id).await?.is_none() {
+        return Response::error("Invalid status_id", 400);
+    }
+
     let job_id = password::generate_uuid()
         .map_err(|e| worker::Error::RustError(format!("Failed to generate UUID: {}", e)))?;
 
     match (&job.location, &job.description) {
         (Some(location), Some(description)) => {
             db.prepare(
-                "INSERT INTO jobs (id, title, company, location, status, description) VALUES (?, ?, ?, ?, ?, ?)",
+                "INSERT INTO jobs (id, title, company, location, status_id, description) VALUES (?, ?, ?, ?, ?, ?)",
             )
             .bind(&[
                 job_id.clone().into(),
                 job.title.clone().into(),
                 job.company.clone().into(),
                 location.as_str().into(),
-                job.status.clone().into(),
+                status_id.into(),
                 description.as_str().into(),
             ])?
             .run()
@@ -33,27 +40,27 @@ pub async fn create_job(db: &D1Database, mut req: Request) -> Result<Response, w
         }
         (Some(location), None) => {
             db.prepare(
-                "INSERT INTO jobs (id, title, company, location, status, description) VALUES (?, ?, ?, ?, ?, NULL)",
+                "INSERT INTO jobs (id, title, company, location, status_id, description) VALUES (?, ?, ?, ?, ?, NULL)",
             )
             .bind(&[
                 job_id.clone().into(),
                 job.title.clone().into(),
                 job.company.clone().into(),
                 location.as_str().into(),
-                job.status.clone().into(),
+                status_id.into(),
             ])?
             .run()
             .await?;
         }
         (None, Some(description)) => {
             db.prepare(
-                "INSERT INTO jobs (id, title, company, location, status, description) VALUES (?, ?, ?, NULL, ?, ?)",
+                "INSERT INTO jobs (id, title, company, location, status_id, description) VALUES (?, ?, ?, NULL, ?, ?)",
             )
             .bind(&[
                 job_id.clone().into(),
                 job.title.clone().into(),
                 job.company.clone().into(),
-                job.status.clone().into(),
+                status_id.into(),
                 description.as_str().into(),
             ])?
             .run()
@@ -61,13 +68,13 @@ pub async fn create_job(db: &D1Database, mut req: Request) -> Result<Response, w
         }
         (None, None) => {
             db.prepare(
-                "INSERT INTO jobs (id, title, company, location, status, description) VALUES (?, ?, ?, NULL, ?, NULL)",
+                "INSERT INTO jobs (id, title, company, location, status_id, description) VALUES (?, ?, ?, NULL, ?, NULL)",
             )
             .bind(&[
                 job_id.clone().into(),
                 job.title.clone().into(),
                 job.company.clone().into(),
-                job.status.clone().into(),
+                status_id.into(),
             ])?
             .run()
             .await?;
@@ -79,7 +86,7 @@ pub async fn create_job(db: &D1Database, mut req: Request) -> Result<Response, w
         "title": job.title,
         "company": job.company,
         "location": job.location,
-        "status": job.status,
+        "status_id": status_id,
         "description": job.description,
         "created_at": null,
         "updated_at": null

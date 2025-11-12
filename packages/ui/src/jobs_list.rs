@@ -49,7 +49,7 @@ pub fn JobsList() -> Element {
                     Button {
                         variant: ButtonVariant::Primary,
                         onclick: move |_| *show_create_dialog.write() = true,
-                        "Add job"
+                        "Add Job"
                     }
                 }
             }
@@ -144,8 +144,7 @@ pub fn JobsList() -> Element {
                                         class: "hidden sm:flex sm:flex-col sm:items-end",
                                         p {
                                             class: "text-sm/6 text-gray-900 dark:text-white",
-                                            {job.status.chars().next().map(|c| c.to_uppercase().collect::<String>()).unwrap_or_default()}
-                                            {job.status.chars().skip(1).collect::<String>()}
+                                            {job.status_name.clone().unwrap_or_else(|| "Unknown".to_string())}
                                         }
                                     }
                                     // Dropdown menu

@@ -31,7 +31,7 @@ pub struct CreateJobFromEmail {
     pub title: String,
     pub company: String,
     pub location: Option<String>,
-    pub status: Option<String>,
+    pub status_id: Option<i32>,
 }
 
 /// Response from assign job endpoint
@@ -138,6 +138,35 @@ impl EmailsService {
 
         if status == 200 {
             http_client::json::<AssignJobResponse>(response).await
+        } else if status == 401 {
+            Err(ServiceError::Unauthorized)
+        } else {
+            let text = http_client::text(response).await.unwrap_or_default();
+            Err(ServiceError::Server(status, text))
+        }
+    }
+
+    /// Unassign email from job
+    pub async fn unassign_email_from_job(gmail_id: String) -> Result<(), ServiceError> {
+        let url = format!(
+            "{}/emails/{}/assign-job",
+            Self::get_scanner_base_url(),
+            gmail_id
+        );
+
+        let request = AssignJobRequest {
+            job_id: None,
+            create_job: None,
+        };
+
+        let body = serde_json::to_string(&request)
+            .map_err(|e| ServiceError::Parse(format!("Failed to serialize request: {}", e)))?;
+
+        let response = http_client::post(&url, Some(&body)).await?;
+        let status = response.status();
+
+        if status == 200 {
+            Ok(())
         } else if status == 401 {
             Err(ServiceError::Unauthorized)
         } else {

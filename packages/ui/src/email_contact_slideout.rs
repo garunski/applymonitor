@@ -131,10 +131,12 @@ pub fn EmailContactSlideout() -> Element {
                                         variant: ButtonVariant::Secondary,
                                         onclick: move |_| {
                                             *is_editing.write() = false;
-                                            // Reset to original values
-                                            *name.write() = contact.name.clone().unwrap_or_default();
-                                            *linkedin.write() = contact.linkedin.clone().unwrap_or_default();
-                                            *website.write() = contact.website.clone().unwrap_or_default();
+                                            // Reset to current values from signal
+                                            if let Some(current_contact) = selected_contact_signal.read().as_ref() {
+                                                *name.write() = current_contact.name.clone().unwrap_or_default();
+                                                *linkedin.write() = current_contact.linkedin.clone().unwrap_or_default();
+                                                *website.write() = current_contact.website.clone().unwrap_or_default();
+                                            }
                                         },
                                         "Cancel"
                                     }

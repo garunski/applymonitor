@@ -3,13 +3,16 @@
 use crate::Route;
 use dioxus::prelude::*;
 use dioxus_router::use_navigator;
-use ui::{use_auth, JobDetails as JobDetailsComponent};
+use ui::{state::use_emails_provider, use_auth, JobDetails as JobDetailsComponent};
 
 /// Web-specific job details view wrapper
 #[component]
 pub fn JobDetails(id: String) -> Element {
     let auth = use_auth();
     let navigator = use_navigator();
+
+    // Provide emails state context
+    use_emails_provider();
 
     // Fetch user on mount
     use_effect(move || {
