@@ -1,7 +1,8 @@
 //! Comment form component for adding and displaying comments
 
 use crate::services::comments_service::Comment;
-use crate::state::use_comments;
+use crate::state::{use_auth, use_comments};
+use crate::utils::format_relative_time;
 use dioxus::prelude::*;
 
 /// Comment form component
@@ -113,28 +114,16 @@ pub fn CommentForm(job_id: String) -> Element {
 /// Individual comment item component
 #[component]
 fn CommentItem(comment: Comment) -> Element {
+    let auth = use_auth();
     let user_name = comment.name.as_deref().unwrap_or("Unknown").to_string();
     let user_picture = comment.picture.clone();
     let content = comment.content.clone();
     let created_at = comment.created_at.clone();
 
     // Format relative time
-    let relative_time = if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(&created_at) {
-        let now = chrono::Utc::now();
-        let duration = now.signed_duration_since(dt.with_timezone(&chrono::Utc));
-
-        if duration.num_days() > 0 {
-            format!("{}d ago", duration.num_days())
-        } else if duration.num_hours() > 0 {
-            format!("{}h ago", duration.num_hours())
-        } else if duration.num_minutes() > 0 {
-            format!("{}m ago", duration.num_minutes())
-        } else {
-            "just now".to_string()
-        }
-    } else {
-        created_at.clone()
-    };
+    let user = auth.user.read();
+    let timezone = user.as_ref().and_then(|u| u.timezone.as_deref());
+    let relative_time = format_relative_time(&created_at, timezone);
 
     rsx! {
         li {

@@ -3,17 +3,22 @@
 use crate::components::button::{Button, ButtonVariant};
 use crate::email_slideout::EmailSlideout;
 use crate::services::gmail_scanner_service::GmailScannerService;
-use crate::state::use_emails;
-use crate::state::use_emails_provider;
+use crate::state::{use_auth, use_emails, use_emails_provider};
+use crate::utils::format_date;
 use dioxus::prelude::*;
 
 /// Emails list component
 #[component]
 pub fn EmailsList() -> Element {
     use_emails_provider();
+    let auth = use_auth();
     let emails_state = use_emails();
     let scanning = use_signal(|| false);
     let scan_error = use_signal(|| None::<String>);
+
+    // Compute timezone once for all emails
+    let user = auth.user.read();
+    let timezone = user.as_ref().and_then(|u| u.timezone.as_deref());
 
     // Fetch emails on mount
     use_effect(move || {
@@ -164,7 +169,7 @@ pub fn EmailsList() -> Element {
                                     if let Some(ref date) = email.date {
                                         p {
                                             class: "text-xs leading-6 text-gray-900 dark:text-white",
-                                            {format_date(date)}
+                                            {format_date(date, timezone)}
                                         }
                                     }
                                 }
@@ -186,16 +191,5 @@ pub fn EmailsList() -> Element {
 
         // Email slideout
         EmailSlideout {}
-    }
-}
-
-fn format_date(date_str: &str) -> String {
-    // Try to parse and format the date
-    if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(date_str) {
-        dt.format("%b %d, %Y").to_string()
-    } else if let Ok(dt) = chrono::DateTime::parse_from_str(date_str, "%a, %d %b %Y %H:%M:%S %z") {
-        dt.format("%b %d, %Y").to_string()
-    } else {
-        date_str.to_string()
     }
 }

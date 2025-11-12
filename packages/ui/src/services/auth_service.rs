@@ -13,6 +13,7 @@ pub struct User {
     pub created_at: Option<String>,
     pub updated_at: Option<String>,
     pub providers: Vec<String>,
+    pub timezone: Option<String>, // IANA timezone string (e.g., "America/New_York")
 }
 
 /// Auth API service
@@ -195,6 +196,31 @@ impl AuthService {
 
         if status == 200 {
             Ok(())
+        } else {
+            let text = http_client::text(response).await.unwrap_or_default();
+            Err(ServiceError::Server(status, text))
+        }
+    }
+
+    /// Update user timezone
+    pub async fn update_timezone(timezone: Option<String>) -> Result<User, ServiceError> {
+        let url = format!("{}/api/settings/timezone", get_api_base_url());
+
+        #[derive(serde::Serialize)]
+        struct TimezoneRequest {
+            timezone: Option<String>,
+        }
+
+        let request_body = TimezoneRequest { timezone };
+
+        let body = serde_json::to_string(&request_body)
+            .map_err(|e| ServiceError::Parse(format!("Failed to serialize request: {}", e)))?;
+
+        let response = http_client::put(&url, Some(&body)).await?;
+        let status = response.status();
+
+        if status == 200 {
+            http_client::json::<User>(response).await
         } else {
             let text = http_client::text(response).await.unwrap_or_default();
             Err(ServiceError::Server(status, text))

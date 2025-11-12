@@ -156,6 +156,10 @@ pub async fn get_user_by_id(db: &D1Database, user_id: &str) -> Result<Option<Use
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string()),
             providers,
+            timezone: row
+                .get("timezone")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string()),
         };
         Ok(Some(user))
     } else {
@@ -218,11 +222,42 @@ pub async fn get_user_by_email(db: &D1Database, email: &str) -> Result<Option<Us
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string()),
             providers,
+            timezone: row
+                .get("timezone")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string()),
         };
         Ok(Some(user))
     } else {
         Ok(None)
     }
+}
+
+/// Update user timezone
+pub async fn update_user_timezone(
+    db: &D1Database,
+    user_id: &str,
+    timezone: Option<&str>,
+) -> Result<()> {
+    match timezone {
+        Some(tz) => {
+            db.prepare(
+                "UPDATE users SET timezone = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+            )
+            .bind(&[tz.into(), user_id.into()])?
+            .run()
+            .await?;
+        }
+        None => {
+            db.prepare(
+                "UPDATE users SET timezone = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+            )
+            .bind(&[user_id.into()])?
+            .run()
+            .await?;
+        }
+    }
+    Ok(())
 }
 
 /// Create local user with password

@@ -176,4 +176,28 @@ impl AuthState {
             let _ = location.set_href(&logout_url);
         }
     }
+
+    /// Update user timezone
+    pub fn update_timezone(&self, timezone: Option<String>) {
+        let mut user = self.user;
+        let mut loading = self.loading;
+        let mut error = self.error;
+
+        spawn(async move {
+            *loading.write() = true;
+            *error.write() = None;
+
+            match AuthService::update_timezone(timezone).await {
+                Ok(updated_user) => {
+                    *user.write() = Some(updated_user);
+                    *error.write() = None;
+                }
+                Err(e) => {
+                    *error.write() = Some(e);
+                }
+            }
+
+            *loading.write() = false;
+        });
+    }
 }

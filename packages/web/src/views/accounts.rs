@@ -1,7 +1,10 @@
 use crate::Route;
 use dioxus::prelude::*;
 use dioxus_router::use_navigator;
-use ui::{components::account_linking::AccountLinking, use_auth};
+use ui::{
+    components::{account_linking::AccountLinking, timezone_settings::TimezoneSettings},
+    use_auth,
+};
 
 #[component]
 pub fn Accounts() -> Element {
@@ -82,6 +85,11 @@ pub fn Accounts() -> Element {
             }
 
             AccountLinking {}
+
+            div {
+                class: "border-t border-gray-200 dark:border-white/5",
+                TimezoneSettings {}
+            }
         }
     }
 }

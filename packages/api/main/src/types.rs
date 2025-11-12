@@ -8,5 +8,6 @@ pub struct User {
     pub picture: Option<String>,
     pub created_at: Option<String>,
     pub updated_at: Option<String>,
-    pub providers: Vec<String>, // List of linked providers
+    pub providers: Vec<String>,   // List of linked providers
+    pub timezone: Option<String>, // IANA timezone string (e.g., "America/New_York")
 }

@@ -29,6 +29,7 @@ pub async fn me(req: Request, ctx: RouteContext<()>) -> Result<Response> {
             "created_at": user.created_at,
             "updated_at": user.updated_at,
             "providers": user.providers,
+            "timezone": user.timezone,
         });
 
         Response::from_json(&user_json)

@@ -7,7 +7,7 @@ mod types;
 
 use common::auth::require_auth;
 use common::cors::get_cors;
-use endpoints::{auth, email_contacts, health, job_comments, job_statuses, jobs, root};
+use endpoints::{auth, email_contacts, health, job_comments, job_statuses, jobs, root, settings};
 
 #[event(fetch)]
 async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
@@ -161,6 +161,11 @@ async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
         })
         .options("/email-contacts", |_, _| Response::ok(""))
         .options("/email-contacts/:email", |_, _| Response::ok(""))
+        // Settings routes
+        .put_async("/api/settings/timezone", |req, ctx| async move {
+            settings::timezone::handler(req, ctx).await
+        })
+        .options("/api/settings/timezone", |_, _| Response::ok(""))
         .run(req, env)
         .await?;
 

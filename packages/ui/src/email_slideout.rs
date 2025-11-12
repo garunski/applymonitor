@@ -3,7 +3,8 @@
 use crate::components::button::{Button, ButtonVariant};
 use crate::job_form::JobForm;
 use crate::job_select_dialog::JobSelectDialog;
-use crate::state::use_emails;
+use crate::state::{use_auth, use_emails};
+use crate::utils::format_date_full;
 use dioxus::prelude::*;
 use dioxus_free_icons::icons::bs_icons::BsX;
 use dioxus_free_icons::Icon;
@@ -11,6 +12,7 @@ use dioxus_free_icons::Icon;
 /// Email slideout component
 #[component]
 pub fn EmailSlideout() -> Element {
+    let auth = use_auth();
     let emails_state = use_emails();
     let mut show_job_form = use_signal(|| false);
     let mut show_job_select = use_signal(|| false);
@@ -41,6 +43,11 @@ pub fn EmailSlideout() -> Element {
             .as_ref()
             .unwrap_or(&"New Job Application".to_string())
             .clone();
+
+        // Compute timezone and formatted date before RSX
+        let user = auth.user.read();
+        let timezone = user.as_ref().and_then(|u| u.timezone.as_deref());
+        let formatted_date = email.date.as_ref().map(|d| format_date_full(d, timezone));
 
         rsx! {
             // Backdrop
@@ -142,7 +149,7 @@ pub fn EmailSlideout() -> Element {
                     }
 
                     // Date
-                    if let Some(ref date) = email.date {
+                    if let Some(ref formatted_date) = formatted_date {
                         div {
                             class: "space-y-1",
                             p {
@@ -151,7 +158,7 @@ pub fn EmailSlideout() -> Element {
                             }
                             p {
                                 class: "text-sm text-gray-900 dark:text-white",
-                                {format_date_full(date)}
+                                {formatted_date.clone()}
                             }
                         }
                     }
@@ -193,16 +200,5 @@ pub fn EmailSlideout() -> Element {
         }
     } else {
         rsx! { div {} }
-    }
-}
-
-fn format_date_full(date_str: &str) -> String {
-    // Try to parse and format the date
-    if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(date_str) {
-        dt.format("%B %d, %Y at %I:%M %p").to_string()
-    } else if let Ok(dt) = chrono::DateTime::parse_from_str(date_str, "%a, %d %b %Y %H:%M:%S %z") {
-        dt.format("%B %d, %Y at %I:%M %p").to_string()
-    } else {
-        date_str.to_string()
     }
 }

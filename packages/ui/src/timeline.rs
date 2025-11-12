@@ -1,5 +1,7 @@
 //! Timeline component for displaying job events
 
+use crate::state::use_auth;
+use crate::utils::format_relative_time;
 use dioxus::prelude::*;
 use serde_json::Value;
 
@@ -33,27 +35,6 @@ impl TimelineEventType {
     }
 }
 
-/// Format a relative time string (e.g., "7d ago")
-fn format_relative_time(timestamp: &str) -> String {
-    // Try to parse the timestamp
-    if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(timestamp) {
-        let now = chrono::Utc::now();
-        let duration = now.signed_duration_since(dt.with_timezone(&chrono::Utc));
-
-        if duration.num_days() > 0 {
-            format!("{}d ago", duration.num_days())
-        } else if duration.num_hours() > 0 {
-            format!("{}h ago", duration.num_hours())
-        } else if duration.num_minutes() > 0 {
-            format!("{}m ago", duration.num_minutes())
-        } else {
-            "just now".to_string()
-        }
-    } else {
-        timestamp.to_string()
-    }
-}
-
 /// Timeline component
 #[component]
 pub fn Timeline(events: Vec<Value>) -> Element {
@@ -83,6 +64,7 @@ pub fn Timeline(events: Vec<Value>) -> Element {
 /// Individual timeline event component
 #[component]
 fn TimelineEvent(event: Value, is_last: bool) -> Element {
+    let auth = use_auth();
     let event_type_str = event
         .get("type")
         .and_then(|v| v.as_str())
@@ -94,7 +76,9 @@ fn TimelineEvent(event: Value, is_last: bool) -> Element {
         .unwrap_or("");
     let data = event.get("data").cloned().unwrap_or(serde_json::json!({}));
 
-    let relative_time = format_relative_time(timestamp);
+    let user = auth.user.read();
+    let timezone = user.as_ref().and_then(|u| u.timezone.as_deref());
+    let relative_time = format_relative_time(timestamp, timezone);
 
     match event_type {
         TimelineEventType::CommentAdded => {
