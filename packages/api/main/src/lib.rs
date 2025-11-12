@@ -7,7 +7,9 @@ mod types;
 
 use common::auth::require_auth;
 use common::cors::get_cors;
-use endpoints::{auth, email_contacts, health, job_comments, job_statuses, jobs, root, settings};
+use endpoints::{
+    admin, auth, email_contacts, health, job_comments, job_statuses, jobs, root, settings,
+};
 
 #[event(fetch)]
 async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
@@ -166,6 +168,19 @@ async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
             settings::timezone::handler(req, ctx).await
         })
         .options("/api/settings/timezone", |_, _| Response::ok(""))
+        // Admin routes
+        .get_async("/api/admin/users", |req, ctx| async move {
+            admin::users::list_users(req, ctx).await
+        })
+        .patch_async("/api/admin/users/:id/enabled", |req, ctx| async move {
+            admin::users::update_user_enabled_status(req, ctx).await
+        })
+        .get_async("/api/admin/stats", |req, ctx| async move {
+            admin::stats::get_stats(req, ctx).await
+        })
+        .options("/api/admin/users", |_, _| Response::ok(""))
+        .options("/api/admin/users/:id/enabled", |_, _| Response::ok(""))
+        .options("/api/admin/stats", |_, _| Response::ok(""))
         .run(req, env)
         .await?;
 

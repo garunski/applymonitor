@@ -9,5 +9,6 @@ pub use credentials::{
 };
 pub use providers::{link_provider, unlink_provider};
 pub use users::{
-    create_local_user, find_or_create_user, get_user_by_email, get_user_by_id, update_user_timezone,
+    create_local_user, find_or_create_user, get_all_users, get_user_by_email, get_user_by_id,
+    is_user_admin, update_user_enabled, update_user_timezone,
 };

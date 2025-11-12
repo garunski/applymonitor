@@ -24,6 +24,11 @@ pub async fn delete(url: &str) -> Result<Response, ServiceError> {
     request(url, "DELETE", None).await
 }
 
+/// Make a PATCH request with credentials
+pub async fn patch(url: &str, body: Option<&str>) -> Result<Response, ServiceError> {
+    request(url, "PATCH", body).await
+}
+
 /// Internal function to make HTTP requests with credentials
 async fn request(url: &str, method: &str, body: Option<&str>) -> Result<Response, ServiceError> {
     let opts = RequestInit::new();

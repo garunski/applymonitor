@@ -108,6 +108,9 @@ pub async fn register(mut req: Request, ctx: RouteContext<()>) -> Result<Respons
             "created_at": user.created_at,
             "updated_at": user.updated_at,
             "providers": user.providers,
+            "timezone": user.timezone,
+            "is_admin": user.is_admin,
+            "enabled": user.enabled,
         });
 
         Ok(Response::from_json(&user_json)?.with_headers(headers))
@@ -133,6 +136,11 @@ pub async fn login_local(mut req: Request, ctx: RouteContext<()>) -> Result<Resp
         .map_err(|e| worker::Error::RustError(format!("Failed to get user: {}", e)))?;
 
     let user = user.ok_or_else(|| worker::Error::RustError("Invalid credentials".to_string()))?;
+
+    // Check if user is enabled
+    if !user.enabled.unwrap_or(true) {
+        return Response::error("Account is disabled", 403);
+    }
 
     // Check if user has local provider
     if !user.providers.contains(&"local".to_string()) {
@@ -209,6 +217,9 @@ pub async fn login_local(mut req: Request, ctx: RouteContext<()>) -> Result<Resp
         "created_at": user.created_at,
         "updated_at": user.updated_at,
         "providers": user.providers,
+        "timezone": user.timezone,
+        "is_admin": user.is_admin,
+        "enabled": user.enabled,
     });
 
     Ok(Response::from_json(&user_json)?.with_headers(headers))

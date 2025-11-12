@@ -1,11 +1,11 @@
 use dioxus::prelude::*;
 use dioxus_free_icons::{
-    icons::bs_icons::{BsBriefcase, BsEnvelope, BsGear, BsHouse},
+    icons::bs_icons::{BsBriefcase, BsEnvelope, BsGear, BsHouse, BsShieldCheck},
     Icon,
 };
 
 use ui::{state::use_jobs_provider, use_auth_provider, SidebarLayout};
-use views::{Accounts, Blog, Dashboard, Emails, Home, JobDetails, Jobs, Login};
+use views::{Accounts, Admin, Blog, Dashboard, Emails, Home, JobDetails, Jobs, Login};
 
 mod views;
 
@@ -29,6 +29,8 @@ pub enum Route {
     Emails {},
     #[route("/settings/accounts")]
     Accounts {},
+    #[route("/admin")]
+    Admin {},
 }
 
 const TAILWIND_CSS: Asset = asset!("/assets/tailwind.css");
@@ -86,9 +88,12 @@ fn App() -> Element {
 #[component]
 fn WebSidebar() -> Element {
     use dioxus_router::use_navigator;
-    use ui::components::sidebar_nav::SidebarNav;
+    use ui::{components::sidebar_nav::SidebarNav, use_auth};
 
     let navigator = use_navigator();
+    let auth = use_auth();
+    let user = auth.user;
+    let is_admin = user().as_ref().and_then(|u| u.is_admin).unwrap_or(false);
 
     rsx! {
         SidebarLayout {
@@ -144,6 +149,20 @@ fn WebSidebar() -> Element {
                                 icon: BsGear,
                             }
                             "Settings"
+                        }
+                        if is_admin {
+                            Link {
+                                to: Route::Admin {},
+                                class: "group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold text-gray-700 dark:text-gray-300 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-gray-50 dark:hover:bg-gray-800",
+                                Icon {
+                                    class: "h-6 w-6 shrink-0",
+                                    width: 24,
+                                    height: 24,
+                                    fill: "currentColor",
+                                    icon: BsShieldCheck,
+                                }
+                                "Admin"
+                            }
                         }
                 }
             }),

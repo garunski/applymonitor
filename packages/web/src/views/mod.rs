@@ -21,3 +21,6 @@ pub use login::Login;
 
 mod accounts;
 pub use accounts::Accounts;
+
+mod admin;
+pub use admin::Admin;

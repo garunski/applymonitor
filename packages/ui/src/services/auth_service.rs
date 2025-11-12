@@ -14,6 +14,8 @@ pub struct User {
     pub updated_at: Option<String>,
     pub providers: Vec<String>,
     pub timezone: Option<String>, // IANA timezone string (e.g., "America/New_York")
+    pub is_admin: Option<bool>,   // Admin status
+    pub enabled: Option<bool>,    // User enabled/disabled status
 }
 
 /// Auth API service

@@ -1,6 +1,6 @@
 use crate::common::auth::require_auth;
 use crate::common::db::get_d1;
-use crate::services::db::{find_or_create_user, link_provider};
+use crate::services::db::{find_or_create_user, get_user_by_id, link_provider};
 use crate::services::oidc::OIDCProvider;
 use crate::services::password;
 use crate::services::session;
@@ -206,6 +206,17 @@ pub async fn callback(req: Request, ctx: RouteContext<()>) -> Result<Response> {
         .await
         .map_err(|e| worker::Error::RustError(format!("Failed to find or create user: {}", e)))?
     };
+
+    // Check if user is enabled
+    let user = get_user_by_id(&db, &user_id)
+        .await
+        .map_err(|e| worker::Error::RustError(format!("Failed to get user: {}", e)))?;
+
+    if let Some(user) = user {
+        if !user.enabled.unwrap_or(true) {
+            return Response::error("Account is disabled", 403);
+        }
+    }
 
     // Create session token
     let signing_key = ctx

@@ -1,3 +1,5 @@
+use crate::common::db::get_d1;
+use crate::services::db::is_user_admin;
 use crate::services::session;
 use anyhow::{anyhow, Result};
 use worker::*;
@@ -27,6 +29,21 @@ pub async fn require_auth(req: &Request, env: &Env) -> Result<String> {
 
     let user_id = session::verify_session_token(&session_cookie, &signing_key)
         .map_err(|e| anyhow!("Invalid session token: {}", e))?;
+
+    Ok(user_id)
+}
+
+pub async fn require_admin(req: &Request, env: &Env) -> Result<String> {
+    let user_id = require_auth(req, env).await?;
+
+    let db = get_d1(env)?;
+    let is_admin = is_user_admin(&db, &user_id)
+        .await
+        .map_err(|e| anyhow!("Failed to check admin status: {}", e))?;
+
+    if !is_admin {
+        return Err(anyhow!("Admin access required"));
+    }
 
     Ok(user_id)
 }

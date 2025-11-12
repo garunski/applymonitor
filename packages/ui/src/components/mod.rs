@@ -1,5 +1,6 @@
 // AUTOGENERTED Components module
 pub mod account_linking;
+pub mod admin;
 pub mod alert_dialog;
 pub mod button;
 pub mod dialog;

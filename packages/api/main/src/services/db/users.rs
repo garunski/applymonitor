@@ -160,6 +160,12 @@ pub async fn get_user_by_id(db: &D1Database, user_id: &str) -> Result<Option<Use
                 .get("timezone")
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string()),
+            is_admin: row
+                .get("is_admin")
+                .and_then(|v| v.as_bool().or_else(|| v.as_u64().map(|n| n != 0))),
+            enabled: row
+                .get("enabled")
+                .and_then(|v| v.as_bool().or_else(|| v.as_u64().map(|n| n != 0))),
         };
         Ok(Some(user))
     } else {
@@ -226,6 +232,12 @@ pub async fn get_user_by_email(db: &D1Database, email: &str) -> Result<Option<Us
                 .get("timezone")
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string()),
+            is_admin: row
+                .get("is_admin")
+                .and_then(|v| v.as_bool().or_else(|| v.as_u64().map(|n| n != 0))),
+            enabled: row
+                .get("enabled")
+                .and_then(|v| v.as_bool().or_else(|| v.as_u64().map(|n| n != 0))),
         };
         Ok(Some(user))
     } else {
@@ -310,4 +322,107 @@ pub async fn create_local_user(
         .await?;
 
     Ok(user_id)
+}
+
+/// Get all users (admin only)
+pub async fn get_all_users(db: &D1Database) -> Result<Vec<User>> {
+    let result = db
+        .prepare("SELECT * FROM users ORDER BY created_at DESC")
+        .all()
+        .await?;
+
+    let mut users = Vec::new();
+
+    for row in result.results::<Value>()? {
+        let user_id = row
+            .get("id")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| anyhow!("Missing user id"))?
+            .to_string();
+
+        // Get providers list
+        let providers_result = db
+            .prepare("SELECT provider FROM user_providers WHERE user_id = ?")
+            .bind(&[user_id.clone().into()])?
+            .all()
+            .await?;
+
+        let providers: Vec<String> = providers_result
+            .results()?
+            .iter()
+            .filter_map(|p: &Value| {
+                p.get("provider")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string())
+            })
+            .collect();
+
+        let user = User {
+            id: user_id,
+            email: row
+                .get("email")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string()),
+            name: row
+                .get("name")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string()),
+            picture: row
+                .get("picture")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string()),
+            created_at: row
+                .get("created_at")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string()),
+            updated_at: row
+                .get("updated_at")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string()),
+            providers,
+            timezone: row
+                .get("timezone")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string()),
+            is_admin: row
+                .get("is_admin")
+                .and_then(|v| v.as_bool().or_else(|| v.as_u64().map(|n| n != 0))),
+            enabled: row
+                .get("enabled")
+                .and_then(|v| v.as_bool().or_else(|| v.as_u64().map(|n| n != 0))),
+        };
+
+        users.push(user);
+    }
+
+    Ok(users)
+}
+
+/// Update user enabled status
+pub async fn update_user_enabled(db: &D1Database, user_id: &str, enabled: bool) -> Result<()> {
+    db.prepare("UPDATE users SET enabled = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?")
+        .bind(&[enabled.into(), user_id.into()])?
+        .run()
+        .await?;
+
+    Ok(())
+}
+
+/// Check if user is admin
+pub async fn is_user_admin(db: &D1Database, user_id: &str) -> Result<bool> {
+    let result = db
+        .prepare("SELECT is_admin FROM users WHERE id = ?")
+        .bind(&[user_id.into()])?
+        .first::<Value>(None)
+        .await?;
+
+    if let Some(row) = result {
+        let is_admin = row
+            .get("is_admin")
+            .and_then(|v| v.as_bool().or_else(|| v.as_u64().map(|n| n != 0)))
+            .unwrap_or(false);
+        Ok(is_admin)
+    } else {
+        Ok(false)
+    }
 }

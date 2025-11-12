@@ -58,6 +58,7 @@ pub mod components;
 pub mod hooks;
 
 // Re-export commonly used components
+pub use components::admin::{AdminDashboard, UsersList};
 pub use components::login_button::LoginButton;
 pub use components::login_page::LoginPage;
 pub use components::sidebar_nav::{SidebarNav, SidebarNavItem};
