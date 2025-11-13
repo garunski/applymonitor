@@ -63,61 +63,38 @@ pub async fn call_ai(env: &Env, prompt: &str) -> Result<String> {
         .await
         .map_err(|e| anyhow!("AI API error: {:?}", e))?;
 
-    // Log the raw output for debugging
-    console_log!("Raw AI output: {:?}", output);
-    console_log!("Raw AI output (pretty): {}", serde_json::to_string_pretty(&output).unwrap_or_default());
+    // Extract text from response - try common formats
+    let response_text = output
+        .as_str()
+        .map(|s| s.to_string())
+        .or_else(|| {
+            output
+                .as_object()?
+                .get("response")?
+                .as_str()
+                .map(|s| s.to_string())
+        })
+        .or_else(|| {
+            output
+                .as_object()?
+                .get("result")?
+                .as_str()
+                .map(|s| s.to_string())
+        })
+        .ok_or_else(|| {
+            console_log!("Unexpected AI response format: {}", serde_json::to_string_pretty(&output).unwrap_or_default());
+            anyhow!("Invalid AI API response format: {:?}", output)
+        })?;
 
-    // The response format from Workers AI binding is typically:
-    // { "response": "text here" } or the response might be directly the text
-    // Let's try multiple formats
-    let response_text = if let Some(text) = output.as_str() {
-        // Response is directly a string
-        console_log!("AI response is string: {}", text);
-        text.to_string()
-    } else if let Some(obj) = output.as_object() {
-        // Try "response" field
-        if let Some(text) = obj.get("response").and_then(|v| v.as_str()) {
-            console_log!("AI response from 'response' field: {}", text);
-            text.to_string()
-        } else if let Some(text) = obj.get("result").and_then(|v| v.as_str()) {
-            console_log!("AI response from 'result' field: {}", text);
-            text.to_string()
-        } else if let Some(result_obj) = obj.get("result").and_then(|v| v.as_object()) {
-            // Nested result object
-            if let Some(text) = result_obj.get("response").and_then(|v| v.as_str()) {
-                console_log!("AI response from nested 'result.response' field: {}", text);
-                text.to_string()
-            } else {
-                console_log!("AI response object structure: {:?}", result_obj);
-                return Err(anyhow!("Invalid AI API response format: {:?}", output));
-            }
-        } else {
-            console_log!("AI response object (no known fields): {:?}", obj);
-            return Err(anyhow!("Invalid AI API response format: {:?}", output));
-        }
-    } else {
-        console_log!("AI response is not string or object: {:?}", output);
-        return Err(anyhow!("Invalid AI API response format: {:?}", output));
-    };
-
-    console_log!("Final extracted response text: {}", response_text);
     Ok(response_text)
 }
 
 fn extract_json_from_text(text: &str) -> Result<String> {
-    console_log!("Extracting JSON from text (length: {}): {}", text.len(), text);
-    // Find the first { and last } to extract JSON
-    let start = text.find('{').ok_or_else(|| {
-        console_log!("No opening brace found in text: {}", text);
-        anyhow!("No JSON object found in response")
-    })?;
-    let end = text.rfind('}').ok_or_else(|| {
-        console_log!("No closing brace found in text: {}", text);
-        anyhow!("No closing brace found in JSON")
-    })?;
-    let json = text[start..=end].to_string();
-    console_log!("Extracted JSON: {}", json);
-    Ok(json)
+    let start = text.find('{')
+        .ok_or_else(|| anyhow!("No JSON object found in response: {}", text))?;
+    let end = text.rfind('}')
+        .ok_or_else(|| anyhow!("No closing brace found in JSON: {}", text))?;
+    Ok(text[start..=end].to_string())
 }
 
 fn substitute_variables(template: &str, variables: &HashMap<&str, &str>) -> String {
@@ -145,21 +122,40 @@ pub async fn classify_email(env: &Env, email: &EmailData) -> Result<Classificati
     );
 
     let prompt = substitute_variables(&prompt_template, &variables);
-    let response = call_ai(env, &prompt).await?;
+    let response = match call_ai(env, &prompt).await {
+        Ok(r) => r,
+        Err(e) => {
+            console_log!("AI call failed: {}", e);
+            return Ok(ClassificationResult {
+                category: "other".to_string(),
+                confidence: 0.0,
+            });
+        }
+    };
 
     // Extract JSON from response (may contain extra text)
-    let json_text = extract_json_from_text(&response)?;
+    let json_text = match extract_json_from_text(&response) {
+        Ok(j) => j,
+        Err(e) => {
+            console_log!("Failed to extract JSON: {} - Response: {}", e, response);
+            return Ok(ClassificationResult {
+                category: "other".to_string(),
+                confidence: 0.0,
+            });
+        }
+    };
 
-    // Parse JSON response
-    let result: ClassificationResult = serde_json::from_str(&json_text).map_err(|e| {
-        anyhow!(
-            "Failed to parse classification result: {} - Response: {}",
-            e,
-            response
-        )
-    })?;
-
-    Ok(result)
+    // Parse JSON response, default to "other" with low confidence on failure
+    match serde_json::from_str::<ClassificationResult>(&json_text) {
+        Ok(result) => Ok(result),
+        Err(e) => {
+            console_log!("Failed to parse classification result: {} - JSON: {}", e, json_text);
+            Ok(ClassificationResult {
+                category: "other".to_string(),
+                confidence: 0.0,
+            })
+        }
+    }
 }
 
 pub async fn extract_info(
@@ -183,21 +179,55 @@ pub async fn extract_info(
     );
 
     let prompt = substitute_variables(&prompt_template, &variables);
-    let response = call_ai(env, &prompt).await?;
+    let response = match call_ai(env, &prompt).await {
+        Ok(r) => r,
+        Err(e) => {
+            console_log!("AI call failed: {}", e);
+            return Ok(ExtractionResult {
+                company: None,
+                job_title: None,
+                recruiter_name: None,
+                recruiter_email: None,
+                interview_date: None,
+                location: None,
+                remote: None,
+            });
+        }
+    };
 
     // Extract JSON from response (may contain extra text)
-    let json_text = extract_json_from_text(&response)?;
+    let json_text = match extract_json_from_text(&response) {
+        Ok(j) => j,
+        Err(e) => {
+            console_log!("Failed to extract JSON: {} - Response: {}", e, response);
+            return Ok(ExtractionResult {
+                company: None,
+                job_title: None,
+                recruiter_name: None,
+                recruiter_email: None,
+                interview_date: None,
+                location: None,
+                remote: None,
+            });
+        }
+    };
 
-    // Parse JSON response
-    let result: ExtractionResult = serde_json::from_str(&json_text).map_err(|e| {
-        anyhow!(
-            "Failed to parse extraction result: {} - Response: {}",
-            e,
-            response
-        )
-    })?;
-
-    Ok(result)
+    // Parse JSON response, default to empty result on failure
+    match serde_json::from_str::<ExtractionResult>(&json_text) {
+        Ok(result) => Ok(result),
+        Err(e) => {
+            console_log!("Failed to parse extraction result: {} - JSON: {}", e, json_text);
+            Ok(ExtractionResult {
+                company: None,
+                job_title: None,
+                recruiter_name: None,
+                recruiter_email: None,
+                interview_date: None,
+                location: None,
+                remote: None,
+            })
+        }
+    }
 }
 
 pub async fn summarize_email(
@@ -221,21 +251,37 @@ pub async fn summarize_email(
     );
 
     let prompt = substitute_variables(&prompt_template, &variables);
-    let response = call_ai(env, &prompt).await?;
+    let response = match call_ai(env, &prompt).await {
+        Ok(r) => r,
+        Err(e) => {
+            console_log!("AI call failed: {}", e);
+            return Ok(SummarizationResult {
+                summary: "Unable to generate summary".to_string(),
+            });
+        }
+    };
 
     // Extract JSON from response (may contain extra text)
-    let json_text = extract_json_from_text(&response)?;
+    let json_text = match extract_json_from_text(&response) {
+        Ok(j) => j,
+        Err(e) => {
+            console_log!("Failed to extract JSON: {} - Response: {}", e, response);
+            return Ok(SummarizationResult {
+                summary: "Unable to generate summary".to_string(),
+            });
+        }
+    };
 
-    // Parse JSON response
-    let result: SummarizationResult = serde_json::from_str(&json_text).map_err(|e| {
-        anyhow!(
-            "Failed to parse summarization result: {} - Response: {}",
-            e,
-            response
-        )
-    })?;
-
-    Ok(result)
+    // Parse JSON response, default to unclear summary on failure
+    match serde_json::from_str::<SummarizationResult>(&json_text) {
+        Ok(result) => Ok(result),
+        Err(e) => {
+            console_log!("Failed to parse summarization result: {} - JSON: {}", e, json_text);
+            Ok(SummarizationResult {
+                summary: "Unable to generate summary".to_string(),
+            })
+        }
+    }
 }
 
 pub async fn process_email(env: &Env, email_id: &str, user_id: &str) -> Result<()> {
