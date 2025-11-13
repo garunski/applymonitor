@@ -1,3 +1,5 @@
+pub mod ai_prompts;
+pub mod ai_results;
 pub mod credentials;
 pub mod email_contacts;
 pub mod providers;

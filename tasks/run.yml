@@ -66,3 +66,10 @@ tasks:
     cmds:
       - wrangler dev --port 8001 --inspector-port 9230 --env personal --remote
 
+  ai-processor:
+    desc: Run the AI Processor Worker on port 8002
+    deps: [api:setup, db]
+    dir: "{{.API_DIR}}/ai-processor"
+    cmds:
+      - wrangler dev --port 8002 --inspector-port 9231 --env personal --remote
+

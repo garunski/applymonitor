@@ -8,7 +8,7 @@ mod types;
 use common::auth::require_auth;
 use common::cors::get_cors;
 use endpoints::{
-    admin, auth, email_contacts, health, job_comments, job_statuses, jobs, root, settings,
+    admin, ai, auth, email_contacts, health, job_comments, job_statuses, jobs, root, settings,
 };
 
 #[event(fetch)]
@@ -178,9 +178,29 @@ async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
         .get_async("/api/admin/stats", |req, ctx| async move {
             admin::stats::get_stats(req, ctx).await
         })
+        .get_async("/api/admin/prompts", |req, ctx| async move {
+            admin::prompts::list(req, ctx).await
+        })
+        .post_async("/api/admin/prompts", |req, ctx| async move {
+            admin::prompts::create(req, ctx).await
+        })
+        .post_async("/api/admin/prompts/:id/activate", |req, ctx| async move {
+            admin::prompts::activate(req, ctx).await
+        })
+        .post_async("/api/admin/prompts/test", |req, ctx| async move {
+            admin::prompts::test(req, ctx).await
+        })
         .options("/api/admin/users", |_, _| Response::ok(""))
         .options("/api/admin/users/:id/enabled", |_, _| Response::ok(""))
         .options("/api/admin/stats", |_, _| Response::ok(""))
+        .options("/api/admin/prompts", |_, _| Response::ok(""))
+        .options("/api/admin/prompts/:id/activate", |_, _| Response::ok(""))
+        .options("/api/admin/prompts/test", |_, _| Response::ok(""))
+        // AI results routes
+        .get_async("/api/emails/:email_id/ai-results", |req, ctx| async move {
+            ai::results::handler(req, ctx).await
+        })
+        .options("/api/emails/:email_id/ai-results", |_, _| Response::ok(""))
         .run(req, env)
         .await?;
 

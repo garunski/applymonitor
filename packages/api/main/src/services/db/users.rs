@@ -160,12 +160,16 @@ pub async fn get_user_by_id(db: &D1Database, user_id: &str) -> Result<Option<Use
                 .get("timezone")
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string()),
-            is_admin: row
-                .get("is_admin")
-                .and_then(|v| v.as_bool().or_else(|| v.as_u64().map(|n| n != 0))),
-            enabled: row
-                .get("enabled")
-                .and_then(|v| v.as_bool().or_else(|| v.as_u64().map(|n| n != 0))),
+            is_admin: row.get("is_admin").and_then(|v| {
+                v.as_bool()
+                    .or_else(|| v.as_u64().map(|n| n != 0))
+                    .or_else(|| v.as_f64().map(|n| n != 0.0))
+            }),
+            enabled: row.get("enabled").and_then(|v| {
+                v.as_bool()
+                    .or_else(|| v.as_u64().map(|n| n != 0))
+                    .or_else(|| v.as_f64().map(|n| n != 0.0))
+            }),
         };
         Ok(Some(user))
     } else {
@@ -232,12 +236,16 @@ pub async fn get_user_by_email(db: &D1Database, email: &str) -> Result<Option<Us
                 .get("timezone")
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string()),
-            is_admin: row
-                .get("is_admin")
-                .and_then(|v| v.as_bool().or_else(|| v.as_u64().map(|n| n != 0))),
-            enabled: row
-                .get("enabled")
-                .and_then(|v| v.as_bool().or_else(|| v.as_u64().map(|n| n != 0))),
+            is_admin: row.get("is_admin").and_then(|v| {
+                v.as_bool()
+                    .or_else(|| v.as_u64().map(|n| n != 0))
+                    .or_else(|| v.as_f64().map(|n| n != 0.0))
+            }),
+            enabled: row.get("enabled").and_then(|v| {
+                v.as_bool()
+                    .or_else(|| v.as_u64().map(|n| n != 0))
+                    .or_else(|| v.as_f64().map(|n| n != 0.0))
+            }),
         };
         Ok(Some(user))
     } else {
@@ -384,12 +392,16 @@ pub async fn get_all_users(db: &D1Database) -> Result<Vec<User>> {
                 .get("timezone")
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string()),
-            is_admin: row
-                .get("is_admin")
-                .and_then(|v| v.as_bool().or_else(|| v.as_u64().map(|n| n != 0))),
-            enabled: row
-                .get("enabled")
-                .and_then(|v| v.as_bool().or_else(|| v.as_u64().map(|n| n != 0))),
+            is_admin: row.get("is_admin").and_then(|v| {
+                v.as_bool()
+                    .or_else(|| v.as_u64().map(|n| n != 0))
+                    .or_else(|| v.as_f64().map(|n| n != 0.0))
+            }),
+            enabled: row.get("enabled").and_then(|v| {
+                v.as_bool()
+                    .or_else(|| v.as_u64().map(|n| n != 0))
+                    .or_else(|| v.as_f64().map(|n| n != 0.0))
+            }),
         };
 
         users.push(user);
@@ -401,7 +413,7 @@ pub async fn get_all_users(db: &D1Database) -> Result<Vec<User>> {
 /// Update user enabled status
 pub async fn update_user_enabled(db: &D1Database, user_id: &str, enabled: bool) -> Result<()> {
     db.prepare("UPDATE users SET enabled = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?")
-        .bind(&[enabled.into(), user_id.into()])?
+        .bind(&[(if enabled { 1 } else { 0 }).into(), user_id.into()])?
         .run()
         .await?;
 
@@ -419,7 +431,11 @@ pub async fn is_user_admin(db: &D1Database, user_id: &str) -> Result<bool> {
     if let Some(row) = result {
         let is_admin = row
             .get("is_admin")
-            .and_then(|v| v.as_bool().or_else(|| v.as_u64().map(|n| n != 0)))
+            .and_then(|v| {
+                v.as_bool()
+                    .or_else(|| v.as_u64().map(|n| n != 0))
+                    .or_else(|| v.as_f64().map(|n| n != 0.0))
+            })
             .unwrap_or(false);
         Ok(is_admin)
     } else {

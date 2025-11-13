@@ -32,11 +32,22 @@
       "problemMatcher": []
     },
     {
+      "label": "run:ai-processor",
+      "type": "shell",
+      "command": "task run:ai-processor",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": []
+    },
+    {
       "label": "run:all",
       "dependsOn": [
         "run:web",
         "run:api",
-        "run:gmail-scanner"
+        "run:gmail-scanner",
+        "run:ai-processor"
       ],
       "dependsOrder": "parallel",
       "problemMatcher": []

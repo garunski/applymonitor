@@ -3,10 +3,11 @@
 use crate::services::admin_service::{AdminService, AdminStats};
 use dioxus::prelude::*;
 
-use super::users_list::UsersList;
+use super::{ai_metrics::AiMetrics, ai_prompts::AiPromptsEditor, users_list::UsersList};
 
 #[component]
 pub fn AdminDashboard() -> Element {
+    let mut active_tab = use_signal(|| "overview".to_string());
     let mut stats = use_signal(|| None::<AdminStats>);
     let mut loading = use_signal(|| true);
     let mut error = use_signal(|| None::<String>);
@@ -40,6 +41,32 @@ pub fn AdminDashboard() -> Element {
                     "Admin Dashboard"
                 }
 
+                // Tabs
+                div {
+                    class: "border-b border-gray-200 dark:border-gray-700 mb-6",
+                    nav {
+                        class: "-mb-px flex space-x-8",
+                        AdminTabButton {
+                            label: "Overview",
+                            tab: "overview",
+                            active: active_tab() == "overview",
+                            onclick: move |_| *active_tab.write() = "overview".to_string(),
+                        }
+                        AdminTabButton {
+                            label: "AI Prompts",
+                            tab: "ai-prompts",
+                            active: active_tab() == "ai-prompts",
+                            onclick: move |_| *active_tab.write() = "ai-prompts".to_string(),
+                        }
+                        AdminTabButton {
+                            label: "AI Metrics",
+                            tab: "ai-metrics",
+                            active: active_tab() == "ai-metrics",
+                            onclick: move |_| *active_tab.write() = "ai-metrics".to_string(),
+                        }
+                    }
+                }
+
                 if let Some(err) = error() {
                     div {
                         class: "mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md",
@@ -50,38 +77,53 @@ pub fn AdminDashboard() -> Element {
                     }
                 }
 
-                if loading() {
-                    div {
-                        class: "text-center py-8",
-                        "Loading statistics..."
-                    }
-                } else if let Some(stats_data) = stats() {
-                    div {
-                        class: "grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8",
-                        StatCard {
-                            title: "Total Users",
-                            value: stats_data.total_users.to_string(),
-                            color: "blue",
+                match active_tab().as_str() {
+                    "overview" => rsx! {
+                        if loading() {
+                            div {
+                                class: "text-center py-8",
+                                "Loading statistics..."
+                            }
+                        } else if let Some(stats_data) = stats() {
+                            div {
+                                class: "space-y-6",
+                                div {
+                                    class: "grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4",
+                                    StatCard {
+                                        title: "Total Users",
+                                        value: stats_data.total_users.to_string(),
+                                        color: "blue",
+                                    }
+                                    StatCard {
+                                        title: "Enabled Users",
+                                        value: stats_data.enabled_users.to_string(),
+                                        color: "green",
+                                    }
+                                    StatCard {
+                                        title: "Disabled Users",
+                                        value: stats_data.disabled_users.to_string(),
+                                        color: "red",
+                                    }
+                                    StatCard {
+                                        title: "Admins",
+                                        value: stats_data.admin_count.to_string(),
+                                        color: "purple",
+                                    }
+                                }
+                                UsersList {}
+                            }
                         }
-                        StatCard {
-                            title: "Enabled Users",
-                            value: stats_data.enabled_users.to_string(),
-                            color: "green",
-                        }
-                        StatCard {
-                            title: "Disabled Users",
-                            value: stats_data.disabled_users.to_string(),
-                            color: "red",
-                        }
-                        StatCard {
-                            title: "Admins",
-                            value: stats_data.admin_count.to_string(),
-                            color: "purple",
-                        }
+                    },
+                    "ai-prompts" => rsx! {
+                        AiPromptsEditor {}
+                    },
+                    "ai-metrics" => rsx! {
+                        AiMetrics {}
+                    },
+                    _ => rsx! {
+                        div { "Unknown tab" }
                     }
                 }
-
-                UsersList {}
             }
         }
     }
@@ -116,6 +158,23 @@ fn StatCard(title: String, value: String, color: String) -> Element {
                 class: "mt-1 text-3xl font-semibold {text_color}",
                 {value}
             }
+        }
+    }
+}
+
+#[component]
+fn AdminTabButton(label: String, tab: String, active: bool, onclick: EventHandler) -> Element {
+    let border_class = if active {
+        "border-blue-500 text-blue-600 dark:text-blue-400"
+    } else {
+        "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600"
+    };
+
+    rsx! {
+        button {
+            class: "whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium {border_class}",
+            onclick: move |_| onclick.call(()),
+            {label}
         }
     }
 }

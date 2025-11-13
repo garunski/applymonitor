@@ -7,6 +7,7 @@ members = [
     "packages/mobile",
     "packages/api/main",
     "packages/api/gmail-scanner",
+    "packages/api/ai-processor",
 ]
 
 [workspace.dependencies]

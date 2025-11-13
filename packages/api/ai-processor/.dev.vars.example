@@ -1,0 +1,12 @@
+# Cloudflare Workers Local Development Secrets
+# Copy this file to .dev.vars and fill in your actual values
+# NEVER commit .dev.vars to version control
+
+# AI Worker URL (optional, for inter-worker communication)
+# Used by other workers to call this AI processor
+# Defaults to http://localhost:8002 if not set
+# AI_WORKER_URL=http://localhost:8002
+
+# Note: No API tokens needed! The AI binding is configured in wrangler.toml
+# and works automatically with wrangler dev and in production.
+

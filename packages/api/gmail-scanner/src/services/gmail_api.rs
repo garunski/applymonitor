@@ -1,4 +1,5 @@
 use anyhow::{anyhow, Result};
+use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -135,6 +136,111 @@ pub async fn get_message(access_token: &str, message_id: &str) -> Result<GmailMe
         bcc,
         date,
     })
+}
+
+#[allow(dead_code)]
+pub async fn get_message_body(access_token: &str, message_id: &str) -> Result<String> {
+    let url = format!(
+        "https://gmail.googleapis.com/gmail/v1/users/me/messages/{}?format=full",
+        message_id
+    );
+
+    let mut request = Request::new(&url, Method::Get)?;
+    request
+        .headers_mut()?
+        .set("Authorization", &format!("Bearer {}", access_token))?;
+
+    let mut response = Fetch::Request(request).send().await?;
+    if response.status_code() != 200 {
+        let text = response.text().await?;
+        return Err(anyhow!("Gmail API error: {}", text));
+    }
+
+    let data: serde_json::Value = response.json().await?;
+
+    // Extract body from payload
+    let payload = data["payload"]
+        .as_object()
+        .ok_or_else(|| anyhow!("Missing payload"))?;
+
+    // Try to get text/plain or text/html body
+    let body = extract_body_from_payload(payload)?;
+
+    Ok(body)
+}
+
+#[allow(dead_code)]
+fn extract_body_from_payload(
+    payload: &serde_json::Map<String, serde_json::Value>,
+) -> Result<String> {
+    // Check if body is directly in payload (simple message)
+    if let Some(body_data) = payload.get("body") {
+        if let Some(data) = body_data.get("data") {
+            if let Some(data_str) = data.as_str() {
+                let decoded = URL_SAFE_NO_PAD
+                    .decode(data_str)
+                    .map_err(|e| anyhow!("Failed to decode body: {}", e))?;
+                return Ok(String::from_utf8_lossy(&decoded).to_string());
+            }
+        }
+    }
+
+    // Check parts (multipart message)
+    if let Some(parts) = payload.get("parts").and_then(|p| p.as_array()) {
+        for part in parts {
+            if let Some(mime_type) = part.get("mimeType").and_then(|m| m.as_str()) {
+                if mime_type == "text/plain" || mime_type == "text/html" {
+                    if let Some(body_data) = part.get("body") {
+                        if let Some(data) = body_data.get("data") {
+                            if let Some(data_str) = data.as_str() {
+                                let decoded = base64::engine::general_purpose::URL_SAFE_NO_PAD
+                                    .decode(data_str)
+                                    .map_err(|e| anyhow!("Failed to decode body: {}", e))?;
+                                let text = String::from_utf8_lossy(&decoded).to_string();
+                                // Prefer plain text, but use HTML if that's all we have
+                                if mime_type == "text/plain" {
+                                    return Ok(text);
+                                } else if mime_type == "text/html" {
+                                    // For now, return HTML as-is. Could strip HTML tags later if needed
+                                    return Ok(text);
+                                }
+                            }
+                        }
+                    }
+                }
+                // Recursively check nested parts
+                if let Some(nested_parts) = part.get("parts").and_then(|p| p.as_array()) {
+                    for nested_part in nested_parts {
+                        if let Some(nested_mime) =
+                            nested_part.get("mimeType").and_then(|m| m.as_str())
+                        {
+                            if nested_mime == "text/plain" || nested_mime == "text/html" {
+                                if let Some(body_data) = nested_part.get("body") {
+                                    if let Some(data) = body_data.get("data") {
+                                        if let Some(data_str) = data.as_str() {
+                                            let decoded =
+                                                base64::engine::general_purpose::URL_SAFE_NO_PAD
+                                                    .decode(data_str)
+                                                    .map_err(|e| {
+                                                        anyhow!("Failed to decode body: {}", e)
+                                                    })?;
+                                            let text =
+                                                String::from_utf8_lossy(&decoded).to_string();
+                                            if nested_mime == "text/plain" {
+                                                return Ok(text);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    Err(anyhow!("Could not extract body from message"))
 }
 
 pub fn build_date_query(start_date: &DateTime<Utc>, end_date: &DateTime<Utc>) -> String {

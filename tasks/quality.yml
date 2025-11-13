@@ -28,10 +28,12 @@ tasks:
         cargo check --package web --target wasm32-unknown-unknown
         cargo check --package api-main --target wasm32-unknown-unknown
         cargo check --package api-gmail-scanner --target wasm32-unknown-unknown
+        cargo check --package api-ai-processor --target wasm32-unknown-unknown
       - |
         echo "🔍 Running clippy for WASM target (treating warnings as errors)..."
         cargo clippy --package ui --target wasm32-unknown-unknown -- -D warnings
         cargo clippy --package web --target wasm32-unknown-unknown -- -D warnings
         cargo clippy --package api-main --target wasm32-unknown-unknown -- -D warnings
         cargo clippy --package api-gmail-scanner --target wasm32-unknown-unknown -- -D warnings
+        cargo clippy --package api-ai-processor --target wasm32-unknown-unknown -- -D warnings
       - echo "✅ All quality checks passed!"

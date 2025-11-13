@@ -279,6 +279,12 @@ pub async fn scan_emails(mut req: Request, env: Env) -> worker::Result<Response>
     .run()
     .await?;
 
+    // TODO: Trigger AI processing for stored emails
+    // For now, emails will be processed via a separate endpoint or scheduled job
+    // In production, consider using Cloudflare Queues or a scheduled worker
+    // let stored_email_ids: Vec<String> = all_messages.iter().map(|m| m.id.clone()).collect();
+    // Call AI worker at /process/batch with email_ids and user_id
+
     Response::from_json(&serde_json::json!({
         "scan_id": scan_id,
         "emails_found": all_messages.len(),

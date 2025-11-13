@@ -1,0 +1,48 @@
+name = "applymonitor-ai-processor"
+compatibility_date = "2024-01-01"
+account_id = "dd9a9f25900c93ac23898bbaf306ff76"
+main = "build/index.js"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "applymonitor-db"
+database_id = "249cc634-c591-4b94-b4af-5e5d9197b52f"
+
+[ai]
+binding = "AI"
+
+[build]
+command = "worker-build"
+
+[env.personal]
+[[env.personal.d1_databases]]
+binding = "DB"
+database_name = "applymonitor-garun-personal"
+database_id = "52b4cb49-6e07-422e-8eb8-7fc23d6f178f"
+
+[env.personal.ai]
+binding = "AI"
+
+[env.production]
+account_id = "dd9a9f25900c93ac23898bbaf306ff76"
+workers_dev = false
+preview_urls = false
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "applymonitor-db"
+database_id = "249cc634-c591-4b94-b4af-5e5d9197b52f"
+
+[env.production.ai]
+binding = "AI"
+
+[vars]
+JWT_ISSUER = "https://api.applymonitor.com"
+FRONTEND_URL = "https://applymonitor.com"
+
+[observability]
+[observability.logs]
+enabled = true
+head_sampling_rate = 1
+invocation_logs = true
+persist = true
+

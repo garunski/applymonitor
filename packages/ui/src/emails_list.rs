@@ -6,6 +6,7 @@ use crate::services::gmail_scanner_service::GmailScannerService;
 use crate::state::{use_auth, use_emails, use_emails_provider};
 use crate::utils::format_date;
 use dioxus::prelude::*;
+use std::collections::HashMap;
 
 /// Emails list component
 #[component]
@@ -15,6 +16,7 @@ pub fn EmailsList() -> Element {
     let emails_state = use_emails();
     let scanning = use_signal(|| false);
     let scan_error = use_signal(|| None::<String>);
+    let ai_results = use_signal(HashMap::<String, crate::services::ai_service::AiResult>::new);
 
     // Compute timezone once for all emails
     let user = auth.user.read();
@@ -154,11 +156,39 @@ pub fn EmailsList() -> Element {
                                             class: "mt-1 truncate text-xs leading-5 text-gray-500 dark:text-gray-400",
                                             {email.from.clone().unwrap_or_else(|| "Unknown sender".to_string())}
                                         }
-                                        if let Some(snippet) = &email.snippet {
+                                        // AI summary or snippet
+                                        if let Some(ai_result) = ai_results.read().get(&email.gmail_id) {
+                                            if let Some(ref summary) = ai_result.summary {
+                                                p {
+                                                    class: "mt-1 text-xs text-gray-600 dark:text-gray-400 line-clamp-2",
+                                                    {summary.clone()}
+                                                }
+                                            }
+                                        } else if let Some(snippet) = &email.snippet {
                                             if !snippet.is_empty() {
                                                 p {
                                                     class: "mt-1 text-xs text-gray-600 dark:text-gray-400 line-clamp-2",
                                                     {snippet.clone()}
+                                                }
+                                            }
+                                        }
+                                        // Category badge
+                                        if let Some(ai_result) = ai_results.read().get(&email.gmail_id) {
+                                            if let Some(ref category) = ai_result.category {
+                                                div {
+                                                    class: "mt-2 flex gap-2 flex-wrap",
+                                                    span {
+                                                        class: "inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200",
+                                                        {category.clone()}
+                                                    }
+                                                    if let Some(conf) = ai_result.confidence {
+                                                        if conf < 0.7 {
+                                                            span {
+                                                                class: "inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200",
+                                                                "Needs Review"
+                                                            }
+                                                        }
+                                                    }
                                                 }
                                             }
                                         }
